@@ -98,14 +98,14 @@ export default function MealPlanning() {
 
   if (!list) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-rose-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 pb-20">
       <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center pt-4">
@@ -125,9 +125,9 @@ export default function MealPlanning() {
         }`}>
           {meals.length === 0 ? (
             <div className="col-span-full">
-              <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md">
-                <CardContent className="p-4 text-center">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+              <Card className="glassmorphism border-0 shadow-lg border-2 border-white/30">
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
                     Aucun repas planifié
                   </p>
                 </CardContent>
@@ -140,9 +140,9 @@ export default function MealPlanning() {
                 open={openMeals[meal.id]} 
                 onOpenChange={() => toggleMealOpen(meal.id)}
               >
-                <Card className={`${getMealBackgroundStyle(meal.completedAt)} backdrop-blur-sm border-0 shadow-md overflow-hidden`}>
+                <Card className="glassmorphism border-0 shadow-lg border-2 border-white/30 overflow-hidden">
                   <CollapsibleTrigger asChild>
-                    <CardHeader className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <CardHeader className="p-4 cursor-pointer hover:bg-white/20 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-3">
@@ -197,7 +197,7 @@ export default function MealPlanning() {
                   </CollapsibleTrigger>
                   
                   <CollapsibleContent>
-                    <CardContent className="p-4 pt-0 border-t border-gray-100 dark:border-gray-700">
+                    <CardContent className="p-4 pt-0 border-t border-white/20 dark:border-gray-700">
                       {/* Macros */}
                       <div className="grid grid-cols-3 gap-3 mb-3">
                         <div className="text-center">
@@ -246,7 +246,10 @@ export default function MealPlanning() {
             <AiMealCreator 
               listId={listId} 
               onMealCreated={() => {
-                queryClient.invalidateQueries({ queryKey: ["/api/meals", listId] });
+                queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
+                queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
               }}
             />
           </div>
