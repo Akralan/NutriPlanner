@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Lightbulb } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -119,7 +118,7 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
               className="glassmorphism-input border-white/30 resize-none h-24"
               rows={3}
             />
-            <div className="text-xs text-rose-600 dark:text-rose-400">
+            <div className="text-xs text-rose-600">
               {description.length}/500 caractères
             </div>
           </div>
@@ -141,20 +140,19 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
               </>
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* AI Suggestions */}
-      <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-md border border-white/30 dark:border-white/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-rose-800 dark:text-rose-200">
-            <Lightbulb className="h-5 w-5" />
-            Suggestions de repas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+        <div className="flex items-center gap-2 text-rose-600 mb-4">
+          <Lightbulb className="h-5 w-5" />
+          <h3 className="text-lg font-semibold">Suggestions de repas</h3>
+        </div>
+        
+        <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-rose-700 dark:text-rose-300">
+            <label className="text-sm font-medium text-rose-700">
               Vos préférences alimentaires
             </label>
             <Input
@@ -162,7 +160,7 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
               value={preferences}
               onChange={(e) => setPreferences(e.target.value)}
               maxLength={200}
-              className="bg-white/50 dark:bg-black/50 border-rose-200 dark:border-rose-700"
+              className="glassmorphism-input border-white/30"
             />
           </div>
 
@@ -170,7 +168,7 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
             onClick={handleGetSuggestions}
             disabled={getSuggestionsMutation.isPending || !preferences.trim()}
             variant="outline"
-            className="w-full border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-600 dark:text-rose-300 dark:hover:bg-rose-950"
+            className="w-full border-rose-300 text-rose-700 hover:bg-rose-50 glassmorphism-button"
           >
             {getSuggestionsMutation.isPending ? (
               <>
@@ -185,30 +183,26 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
             )}
           </Button>
 
+          {/* Suggestions List */}
           {suggestions.length > 0 && (
             <div className="space-y-2">
-              <div className="text-sm font-medium text-rose-700 dark:text-rose-300">
-                Suggestions générées :
-              </div>
-              <div className="flex flex-wrap gap-2">
+              <h4 className="text-sm font-medium text-rose-700">Suggestions :</h4>
+              <div className="space-y-2">
                 {suggestions.map((suggestion, index) => (
                   <Badge
                     key={index}
                     variant="secondary"
-                    className="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 dark:bg-rose-900 dark:text-rose-200 dark:hover:bg-rose-800"
+                    className="cursor-pointer p-2 text-xs bg-rose-100 text-rose-800 hover:bg-rose-200 block"
                     onClick={() => handleUseSuggestion(suggestion)}
                   >
                     {suggestion}
                   </Badge>
                 ))}
               </div>
-              <div className="text-xs text-rose-600 dark:text-rose-400">
-                Cliquez sur une suggestion pour l'utiliser
-              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
