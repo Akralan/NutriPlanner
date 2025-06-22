@@ -9,7 +9,7 @@ import BottomNavigation from "@/components/bottom-navigation";
 import FoodCategory from "@/components/food-category";
 import NutritionModal from "@/components/nutrition-modal";
 import MacroProgress from "@/components/macro-progress";
-import { foodCategories, seasons } from "@/lib/food-data";
+import { seasons } from "@/lib/food-data";
 import type { FoodItem, GroceryList, ListItem } from "@shared/schema";
 
 export default function FoodSelection() {
@@ -94,6 +94,11 @@ export default function FoodSelection() {
   // Get food items with nutrition data
   const { data: foodItems = [] } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
+  });
+
+  // Fetch food categories dynamically
+  const { data: foodCategories = [] } = useQuery<Array<{id: string, name: string, emoji: string, count: number}>>({
+    queryKey: ["/api/food-categories"],
   });
 
   // Calculate current meal progress
@@ -328,8 +333,8 @@ export default function FoodSelection() {
             {expandedCategory && (
               <div className="w-full">
                 {foodCategories
-                  .filter(category => category.id === expandedCategory)
-                  .map((category) => (
+                  .filter((category: any) => category.id === expandedCategory)
+                  .map((category: any) => (
                     <FoodCategory
                       key={category.id}
                       category={category}
@@ -346,8 +351,8 @@ export default function FoodSelection() {
             {/* Other categories in grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {foodCategories
-                .filter(category => category.id !== expandedCategory)
-                .map((category) => (
+                .filter((category: any) => category.id !== expandedCategory)
+                .map((category: any) => (
                   <FoodCategory
                     key={category.id}
                     category={category}

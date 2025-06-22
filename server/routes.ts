@@ -156,6 +156,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Food Categories
+  app.get("/api/food-categories", async (req, res) => {
+    try {
+      const items = await storage.getFoodItems();
+      
+      // Group items by category and count them
+      const categoryMap = new Map();
+      
+      items.forEach(item => {
+        const count = categoryMap.get(item.category) || 0;
+        categoryMap.set(item.category, count + 1);
+      });
+      
+      // Convert to array with proper display names and emojis
+      const categories = Array.from(categoryMap.entries()).map(([id, count]) => {
+        const displayNames: { [key: string]: { name: string; emoji: string } } = {
+          'fruits': { name: 'Fruits', emoji: '🍎' },
+          'legumes': { name: 'Légumes', emoji: '🥦' },
+          'legumineuses': { name: 'Légumineuses', emoji: '🥫' },
+          'cereales-et-pseudo-cereales': { name: 'Céréales et pseudo-céréales', emoji: '🌾' },
+          'pains-et-farines': { name: 'Pains et farines', emoji: '🍞' },
+          'proteines-animales-et-alternatives': { name: 'Protéines animales et alternatives', emoji: '🍗' },
+          'produits-laitiers-et-substituts': { name: 'Produits laitiers et substituts', emoji: '🥛' },
+          'noix-et-graines': { name: 'Noix et graines', emoji: '🥜' },
+          'huiles-et-graisses-saines': { name: 'Huiles et graisses saines', emoji: '🫒' },
+          'epices-herbes-et-condiments': { name: 'Épices, herbes et condiments', emoji: '🌶️' },
+          'produits-fermentes': { name: 'Produits fermentés', emoji: '🥬' },
+          'snacks-et-encas-sains': { name: 'Snacks et encas sains', emoji: '🍫' },
+          'boissons-sans-sucre-ajoute': { name: 'Boissons sans sucre ajouté', emoji: '🥤' },
+          'supplements-et-complements': { name: 'Suppléments et compléments', emoji: '💊' },
+        };
+        
+        const display = displayNames[id] || { name: id, emoji: '📦' };
+        
+        return {
+          id,
+          name: display.name,
+          emoji: display.emoji,
+          count
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch food categories" });
+    }
+  });
+
   // Food Items
   app.get("/api/food-items", async (req, res) => {
     try {

@@ -125,7 +125,7 @@ export class DatabaseStorage implements IStorage {
     for (const line of dataLines) {
       if (!line.trim()) continue;
       
-      const columns = line.split(',');
+      const columns = this.parseCSVLine(line);
       if (columns.length < 10) continue;
       
       const name = columns[0];
@@ -188,6 +188,28 @@ export class DatabaseStorage implements IStorage {
     }
     
     return seasonMap[season.toLowerCase()] || 'all';
+  }
+
+  private parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
   }
 
   // Grocery Lists
