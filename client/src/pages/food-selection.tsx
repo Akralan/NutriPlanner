@@ -23,6 +23,7 @@ export default function FoodSelection() {
   const [selectedSeason, setSelectedSeason] = useState("all");
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [currentMealMacros, setCurrentMealMacros] = useState({
     calories: 0,
     protein: 0,
@@ -287,10 +288,10 @@ export default function FoodSelection() {
               key={season.id}
               variant="ghost"
               size="sm"
-              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-0 transition-all duration-200 ${
+              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-2 transition-all duration-200 ${
                 selectedSeason === season.id
-                  ? "glassmorphism border-2 border-purple-300/60 text-gray-800 bg-purple-100/40 shadow-md"
-                  : "glassmorphism text-gray-700 border-2 border-white/20 hover:border-white/30"
+                  ? "glassmorphism border-purple-400/80 text-purple-800 bg-purple-200/60 shadow-lg ring-2 ring-purple-300/40"
+                  : "glassmorphism text-gray-700 border-white/30 hover:border-purple-300/50 hover:bg-purple-50/30"
               }`}
               onClick={() => setSelectedSeason(season.id)}
             >
@@ -330,6 +331,8 @@ export default function FoodSelection() {
                 selectedSeason={selectedSeason}
                 onItemClick={handleFoodItemClick}
                 getMealInfo={getFoodItemMealInfo}
+                isExpanded={expandedCategory === category.id}
+                onToggle={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
               />
             ))}
           </div>
