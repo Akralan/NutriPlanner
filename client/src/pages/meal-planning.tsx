@@ -162,26 +162,11 @@ export default function MealPlanning() {
                       </div>
                       
                       {/* Ingredients */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      {meal.ingredients && meal.ingredients.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Ingrédients:
                           </h4>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/food-selection/${listId}?mealId=${meal.id}`);
-                            }}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Ajouter des aliments
-                          </Button>
-                        </div>
-                        
-                        {meal.ingredients && meal.ingredients.length > 0 ? (
                           <div className="space-y-1">
                             {meal.ingredients.map((ingredient: any, index: number) => (
                               <div key={index} className="flex items-center gap-2">
@@ -192,12 +177,8 @@ export default function MealPlanning() {
                               </div>
                             ))}
                           </div>
-                        ) : (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                            Aucun aliment ajouté pour ce repas
-                          </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
