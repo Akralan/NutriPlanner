@@ -354,19 +354,21 @@ export default function Profile() {
               </div>
             )}
 
-            {/* Account Information */}
-            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email :</span>
-                  <span className="text-gray-800 font-medium">{user?.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Membre depuis :</span>
-                  <span className="text-gray-800 font-medium">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "N/A"}
-                  </span>
+            {/* Account Information - positioned at bottom with 50% width on desktop */}
+            <div className="lg:col-span-2">
+              <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 lg:w-1/2">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Email :</span>
+                    <span className="text-gray-800 font-medium">{user?.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Membre depuis :</span>
+                    <span className="text-gray-800 font-medium">
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "N/A"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
