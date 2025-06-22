@@ -238,6 +238,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateMeal(id: number, updates: any): Promise<Meal | undefined> {
+    // Convert ISO string to Date object if completedAt is provided
+    if (updates.completedAt && typeof updates.completedAt === 'string') {
+      updates.completedAt = new Date(updates.completedAt);
+    }
+    
     const [meal] = await db
       .update(meals)
       .set(updates)

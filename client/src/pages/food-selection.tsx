@@ -95,7 +95,7 @@ export default function FoodSelection() {
       
       return apiRequest("POST", "/api/meals", {
         listId,
-        name: `Repas ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+        name: "Mon repas",
         calories: Math.round(currentMealMacros.calories),
         protein: Math.round(currentMealMacros.protein),
         fat: Math.round(currentMealMacros.fat),

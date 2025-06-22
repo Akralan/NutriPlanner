@@ -32,7 +32,7 @@ export default function MealPlanning() {
   const toggleMealMutation = useMutation({
     mutationFn: async ({ mealId, completed, meal }: { mealId: number; completed: boolean; meal: any }) => {
       const updateData = completed 
-        ? { completed, completedAt: new Date() }
+        ? { completed, completedAt: new Date().toISOString() }
         : { completed, completedAt: null };
       
       const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, updateData);
