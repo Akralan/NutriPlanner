@@ -299,7 +299,9 @@ export default function ExpandableChart({ calorieData, weightData = [], isDeskto
               {/* Calories Chart */}
               <div className="glassmorphism rounded-xl p-4 border border-white/20">
                 <h4 className="text-lg font-bold text-gray-800 mb-4">Calories consommées</h4>
-                {renderExpandedChart(getFilteredData())}
+                <div key={`calories-${selectedRange}-${customStartDate}-${customEndDate}`}>
+                  {renderExpandedChart(getFilteredData())}
+                </div>
               </div>
 
               {/* Weight Chart Toggle */}
@@ -323,7 +325,9 @@ export default function ExpandableChart({ calorieData, weightData = [], isDeskto
               {/* Weight Chart */}
               {showWeightChart && weightData.length > 0 && (
                 <div className="glassmorphism rounded-xl p-4 border border-white/20">
-                  {renderWeightChart(getFilteredWeightData())}
+                  <div key={`weight-${selectedRange}-${customStartDate}-${customEndDate}`}>
+                    {renderWeightChart(getFilteredWeightData())}
+                  </div>
                 </div>
               )}
             </div>
