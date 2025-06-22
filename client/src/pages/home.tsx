@@ -7,11 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Calendar, Target } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts";
 import BottomNavigation from "@/components/bottom-navigation";
+import ExpandableChart from "@/components/expandable-chart";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { NutritionLog } from "@shared/schema";
 
 export default function Home() {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d">("7d");
+  const isMobile = useIsMobile();
 
   const { data: nutritionLogs = [] } = useQuery<NutritionLog[]>({
     queryKey: ["/api/nutrition-logs", selectedPeriod],
@@ -119,6 +122,28 @@ export default function Home() {
     };
   });
 
+  // Prepare data for ExpandableChart component
+  const calorieChartData = last7Days.map(date => {
+    const dayString = date.toDateString();
+    const dayCompletedMeals = completedMeals.filter((meal: any) => {
+      if (!meal.completedAt) return false;
+      return new Date(meal.completedAt).toDateString() === dayString;
+    });
+    
+    const dayCalories = dayCompletedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+    
+    return {
+      date: date.toISOString(),
+      calories: dayCalories,
+    };
+  });
+
+  // Mock weight data for demonstration (would come from user profile updates)
+  const weightChartData = last7Days.map((date, index) => ({
+    date: date.toISOString(),
+    weight: (user?.weight || 70) + (Math.sin(index * 0.5) * 0.5), // Slight variation
+  }));
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600";
     if (score >= 60) return "text-yellow-600";
@@ -137,8 +162,8 @@ export default function Home() {
     : 0;
 
   return (
-    <div className="app-container">
-      <div className="p-4 space-y-3 pb-24">
+    <div className="app-container fade-for-mic">
+      <div className="p-4 space-y-3">
         {/* Header */}
         <div className="glassmorphism rounded-2xl p-4 text-center border-2 border-white/30 shadow-lg">
           <h1 className="text-xl font-bold text-gray-800 drop-shadow-sm">
@@ -180,32 +205,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Calories Chart - Bar Style */}
-        {chartData.length > 0 && (
-          <div className="glassmorphism rounded-2xl p-4 border-2 border-white/30 shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-700" />
-                <span className="text-sm font-medium text-gray-800 drop-shadow-sm">Calories (7 derniers jours)</span>
-              </div>
-            </div>
-            <div className="h-32 glassmorphism-dark rounded-xl p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.slice(-4)}>
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false}
-                    tickLine={false}
-                    fontSize={10}
-                    tick={{ fill: '#6b7280' }}
-                  />
-                  <YAxis hide />
-                  <Bar dataKey="target" fill="#e5e7eb" name="Objectif" />
-                  <Bar dataKey="actual" fill="#3b82f6" name="Réel" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        {/* Expandable Calories Chart */}
+        {calorieChartData.length > 0 && (
+          <ExpandableChart 
+            calorieData={calorieChartData}
+            weightData={weightChartData}
+            isDesktop={!isMobile}
+          />
         )}
 
         {/* Quick Stats - Mobile Style */}
