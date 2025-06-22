@@ -355,7 +355,7 @@ export default function Profile() {
             )}
 
             {/* Account Information */}
-            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 lg:col-span-2">
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex justify-between">
