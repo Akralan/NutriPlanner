@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { body, validationResult } from "express-validator";
 import { storage } from "./storage";
 import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
 import { setupSession, requireAuth } from "./auth";
@@ -8,15 +9,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(setupSession());
 
+  // Input validation middleware
+  const validateRegistration = [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+    body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name required (1-50 chars)'),
+    body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name required (1-50 chars)'),
+    body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must be 8+ chars with uppercase, lowercase, and number'),
+  ];
+
+  const validateLogin = [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+    body('password').notEmpty().withMessage('Password required'),
+  ];
+
   // Auth routes
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", validateRegistration, async (req, res) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: "Validation errors", errors: errors.array() });
+      }
+
       const validatedData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
-        return res.status(400).json({ message: "Un utilisateur avec cet email existe déjà" });
+        return res.status(409).json({ message: "Un utilisateur avec cet email existe déjà" });
       }
 
       const user = await storage.createUser(validatedData);
@@ -29,8 +48,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", validateLogin, async (req, res) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: "Validation errors", errors: errors.array() });
+      }
+
       const validatedData = loginSchema.parse(req.body);
       const user = await storage.validateUser(validatedData.email, validatedData.password);
       
