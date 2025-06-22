@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, calculateDailyCalories } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -56,12 +56,18 @@ export default function Home() {
     if (!Array.isArray(meals) || meals.length === 0) return 0;
     
     const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
-    const targetCalories = user?.weight && user?.height ? 
-      (user.weight * 24 + user.height * 8 + (user.weeklyWorkouts || 0) * 50) : 2000;
+    // Use the same calculation method as targetCalories variable
+    const scoreTargetCalories = user?.weight && user?.height ? 
+      calculateDailyCalories(
+        user.weight,
+        user.height,
+        user.weeklyWorkouts || 3,
+        user.calorieThreshold || 0
+      ) : 2000;
     
     if (totalCalories === 0) return 0;
     
-    const calorieRatio = totalCalories / targetCalories;
+    const calorieRatio = totalCalories / scoreTargetCalories;
     let score = 0;
     
     // Scoring logic: optimal range is 0.8-1.2 of target
@@ -78,9 +84,14 @@ export default function Home() {
 
   const todayScore = calculateNutritionScore(todayCompletedMeals);
   
-  // Calculate target calories for today
+  // Calculate target calories for today using the official function
   const targetCalories = user?.weight && user?.height ? 
-    (user.weight * 24 + user.height * 8 + (user.weeklyWorkouts || 0) * 50) : 2000;
+    calculateDailyCalories(
+      user.weight,
+      user.height,
+      user.weeklyWorkouts || 3,
+      user.calorieThreshold || 0
+    ) : 2000;
   
   const todayCalories = todayCompletedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
 

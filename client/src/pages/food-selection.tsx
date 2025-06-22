@@ -50,10 +50,16 @@ export default function FoodSelection() {
     enabled: !!listId,
   });
 
-  // Color system for meal badges
+  // Color system for meal badges - using explicit Tailwind classes
   const mealColors = [
-    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", 
-    "bg-pink-500", "bg-teal-500", "bg-red-500", "bg-indigo-500"
+    { bg: "bg-blue-500", text: "text-blue-500" },
+    { bg: "bg-green-500", text: "text-green-500" },
+    { bg: "bg-purple-500", text: "text-purple-500" },
+    { bg: "bg-orange-500", text: "text-orange-500" },
+    { bg: "bg-pink-500", text: "text-pink-500" },
+    { bg: "bg-teal-500", text: "text-teal-500" },
+    { bg: "bg-red-500", text: "text-red-500" },
+    { bg: "bg-indigo-500", text: "text-indigo-500" }
   ];
 
   // Function to get meal color by index
@@ -68,7 +74,7 @@ export default function FoodSelection() {
       if (meal.ingredients && meal.ingredients.some((ing: any) => ing.foodItemId === foodItemId)) {
         return {
           mealIndex: i + 1,
-          color: getMealColor(i),
+          color: getMealColor(i).bg,
           mealId: meal.id
         };
       }
@@ -294,7 +300,7 @@ export default function FoodSelection() {
               <div className="flex flex-wrap gap-2">
                 {existingMeals.map((meal, index) => (
                   <div key={meal.id} className="flex items-center space-x-1">
-                    <div className={`w-3 h-3 rounded-full ${getMealColor(index)}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${getMealColor(index).bg}`}></div>
                     <span className="text-xs font-medium text-gray-700">Repas {index + 1}</span>
                   </div>
                 ))}

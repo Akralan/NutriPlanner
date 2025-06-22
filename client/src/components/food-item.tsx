@@ -30,9 +30,7 @@ export default function FoodItemComponent({ item, onClick, mealInfo }: FoodItemP
         </div>
         {mealInfo && (
           <div className="flex items-center">
-            <div className={`w-4 h-4 rounded-full ${mealInfo.color} flex items-center justify-center`}>
-              <span className="text-xs font-bold text-white">{mealInfo.mealIndex}</span>
-            </div>
+            <div className={`w-4 h-4 rounded-full ${mealInfo.color}`}></div>
           </div>
         )}
       </div>
