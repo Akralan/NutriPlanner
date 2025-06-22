@@ -31,7 +31,11 @@ export default function MealPlanning() {
 
   const toggleMealMutation = useMutation({
     mutationFn: async ({ mealId, completed, meal }: { mealId: number; completed: boolean; meal: any }) => {
-      const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, { completed });
+      const updateData = completed 
+        ? { completed, completedAt: new Date() }
+        : { completed, completedAt: null };
+      
+      const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, updateData);
       
       // If meal is being marked as completed, update nutrition log
       if (completed && meal) {
@@ -132,6 +136,12 @@ export default function MealPlanning() {
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               {meal.calories} cal • {meal.protein}g protéines
                             </p>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <p>Créé le {meal.createdAt ? new Date(meal.createdAt).toLocaleDateString("fr-FR") : "Date inconnue"}</p>
+                              {meal.completed && meal.completedAt && (
+                                <p className="text-green-600">Mangé le {new Date(meal.completedAt).toLocaleDateString("fr-FR")}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
                         {openMeals[meal.id] ? (

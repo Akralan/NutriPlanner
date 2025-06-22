@@ -60,6 +60,7 @@ export const meals = pgTable("meals", {
   fat: integer("fat").notNull(),
   carbs: integer("carbs").notNull(),
   completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
   ingredients: jsonb("ingredients").notNull(), // Array of { foodItemId, quantity, unit }
   createdAt: timestamp("created_at").defaultNow(),
 });
