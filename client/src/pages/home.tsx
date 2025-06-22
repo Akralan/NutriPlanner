@@ -129,19 +129,8 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="p-6 pb-24">
-        <div className="space-y-4">
-          {foodCategories.map((category) => (
-            <FoodCategory
-              key={category.id}
-              category={category}
-              selectedSeason={selectedSeason}
-              onItemClick={handleFoodItemClick}
-            />
-          ))}
-        </div>
-
         {/* Create List Button */}
-        <div className="mt-8">
+        <div className="mb-8">
           <Button
             onClick={handleCreateList}
             disabled={createListMutation.isPending}
@@ -160,6 +149,27 @@ export default function Home() {
             </div>
           </Button>
         </div>
+
+        {/* Food Categories - Only show if there's an active list */}
+        {(activeList || currentListId) ? (
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Ajouter des aliments à votre liste</h3>
+            {foodCategories.map((category) => (
+              <FoodCategory
+                key={category.id}
+                category={category}
+                selectedSeason={selectedSeason}
+                onItemClick={handleFoodItemClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
+            <span className="text-4xl mb-4 block">🛒</span>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Commencez par créer une liste</h3>
+            <p className="text-gray-600">Créez d'abord une liste de courses pour commencer à ajouter des aliments.</p>
+          </div>
+        )}
       </main>
 
       <BottomNavigation />
