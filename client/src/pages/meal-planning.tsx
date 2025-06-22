@@ -155,7 +155,7 @@ export default function MealPlanning() {
                 open={openMeals[meal.id]} 
                 onOpenChange={() => toggleMealOpen(meal.id)}
               >
-                <Card className={`${getMealBackgroundStyle(meal.completedAt)} backdrop-blur-sm border-0 shadow-lg border-2 border-white/30 overflow-hidden`}>
+                <Card className={`${getMealBackgroundStyle(meal.completedAt)} backdrop-blur-sm border-0 shadow-lg border-2 border-white/30 overflow-hidden rounded-2xl`}>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="p-4 cursor-pointer hover:bg-white/20 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between">
