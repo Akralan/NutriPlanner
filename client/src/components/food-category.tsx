@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -23,13 +23,19 @@ interface FoodCategoryProps {
 }
 
 export default function FoodCategory({ category, selectedSeason, onItemClick, getMealInfo, isExpanded = false, onToggle }: FoodCategoryProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(isExpanded);
   const { data: items = [], isLoading } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items", { category: category.id, season: selectedSeason }],
   });
 
+  // Sync internal state with isExpanded prop
+  useEffect(() => {
+    setIsOpen(isExpanded);
+  }, [isExpanded]);
+
   const handleToggle = () => {
-    setIsOpen(!isOpen);
+    const newState = !isOpen;
+    setIsOpen(newState);
     if (onToggle) {
       onToggle();
     }
