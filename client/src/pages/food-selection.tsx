@@ -171,14 +171,27 @@ export default function FoodSelection() {
         }).catch(error => console.error("Failed to update nutrition log:", error));
       }
       
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/items`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] }); // Invalidate meals to update pastilles
-      queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] }); // Invalidate home page cache
+      // Delete all current list items from the database before invalidating cache
+      const deletePromises = listItems.map(item => 
+        apiRequest("DELETE", `/api/grocery-lists/${listId}/items/${item.id}`)
+      );
       
-      // Clear all list items for next meal
-      queryClient.setQueryData([`/api/grocery-lists/${listId}/items`], []);
+      Promise.all(deletePromises).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/items`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] }); // Invalidate meals to update pastilles
+        queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] }); // Invalidate home page cache
+      }).catch(error => {
+        console.error("Failed to clear list items:", error);
+        // Fallback: just clear the cache data
+        queryClient.setQueryData([`/api/grocery-lists/${listId}/items`], []);
+        queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/items`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
+        queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
+      });
       
       // Reset current meal macros for next meal
       setCurrentMealMacros({

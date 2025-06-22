@@ -223,6 +223,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/grocery-lists/:listId/items/:itemId", async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      const deleted = await storage.removeItemFromList(itemId);
+      if (!deleted) {
+        return res.status(404).json({ message: "List item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete list item" });
+    }
+  });
+
   // Meals
   app.post("/api/meals", async (req, res) => {
     try {
