@@ -97,8 +97,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 }).extend({
   email: z.string().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-  firstName: z.string().min(1, "Le prénom est requis").optional(),
-  lastName: z.string().min(1, "Le nom est requis").optional(),
+  firstName: z.string().min(1, "Le prénom est requis"),
+  lastName: z.string().min(1, "Le nom est requis"),
   height: z.number().min(100).max(250).optional(),
   weight: z.number().min(30).max(300).optional(),
   weeklyWorkouts: z.number().min(0).max(20).optional(),

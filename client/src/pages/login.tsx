@@ -30,6 +30,9 @@ export default function Login() {
       password: "",
       firstName: "",
       lastName: "",
+      height: undefined,
+      weight: undefined,
+      weeklyWorkouts: 0,
     },
   });
 
@@ -141,9 +144,12 @@ export default function Login() {
                         <FormLabel className="text-gray-700 font-medium">Prénom</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             placeholder="Jean"
                             className="glassmorphism border-2 border-white/30 text-gray-800"
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
@@ -159,9 +165,12 @@ export default function Login() {
                         <FormLabel className="text-gray-700 font-medium">Nom</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             placeholder="Dupont"
                             className="glassmorphism border-2 border-white/30 text-gray-800"
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
@@ -178,10 +187,13 @@ export default function Login() {
                       <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
                       <FormControl>
                         <Input
-                          {...field}
                           type="email"
                           placeholder="votre@email.com"
                           className="glassmorphism border-2 border-white/30 text-gray-800"
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
                         />
                       </FormControl>
                       <FormMessage />
@@ -197,10 +209,13 @@ export default function Login() {
                       <FormLabel className="text-gray-700 font-medium">Mot de passe</FormLabel>
                       <FormControl>
                         <Input
-                          {...field}
                           type="password"
                           placeholder="••••••••"
                           className="glassmorphism border-2 border-white/30 text-gray-800"
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
                         />
                       </FormControl>
                       <FormMessage />
