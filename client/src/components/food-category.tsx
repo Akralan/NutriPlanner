@@ -41,9 +41,7 @@ export default function FoodCategory({ category, selectedSeason, onItemClick, ge
 
   return (
     <Collapsible open={isOpen} onOpenChange={handleToggle}>
-      <div className={`glassmorphism rounded-2xl shadow-lg border-2 border-white/30 transition-all duration-300 ${
-        isExpanded && isOpen ? 'col-span-full' : ''
-      }`}>
+      <div className="glassmorphism rounded-2xl shadow-lg border-2 border-white/30 transition-all duration-300">
         <CollapsibleTrigger className="w-full p-4 hover:bg-white/20 transition-colors rounded-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">

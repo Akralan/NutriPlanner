@@ -164,17 +164,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let filteredItems = items;
       
-      if (season && season !== "all") {
-        const seasonStr = Array.isArray(season) ? season[0] : String(season);
+      if (season && season !== "all" && typeof season === 'string') {
         filteredItems = filteredItems.filter(item => {
           if (typeof item.season === 'string') {
-            return item.season.includes(seasonStr) || item.season.includes("toute-saisons");
+            return item.season.includes(season) || item.season.includes("toute-saisons");
           }
           return false;
         });
       }
       
-      if (category) {
+      if (category && typeof category === 'string') {
         filteredItems = filteredItems.filter(item => item.category === category);
       }
       

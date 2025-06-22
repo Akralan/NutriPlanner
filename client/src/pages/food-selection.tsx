@@ -322,19 +322,43 @@ export default function FoodSelection() {
             </div>
           )}
 
-          {/* Desktop responsive grid for food categories */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {foodCategories.map((category) => (
-              <FoodCategory
-                key={category.id}
-                category={category}
-                selectedSeason={selectedSeason}
-                onItemClick={handleFoodItemClick}
-                getMealInfo={getFoodItemMealInfo}
-                isExpanded={expandedCategory === category.id}
-                onToggle={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
-              />
-            ))}
+          {/* Desktop responsive layout for food categories */}
+          <div className="space-y-4">
+            {/* Expanded category takes full width */}
+            {expandedCategory && (
+              <div className="w-full">
+                {foodCategories
+                  .filter(category => category.id === expandedCategory)
+                  .map((category) => (
+                    <FoodCategory
+                      key={category.id}
+                      category={category}
+                      selectedSeason={selectedSeason}
+                      onItemClick={handleFoodItemClick}
+                      getMealInfo={getFoodItemMealInfo}
+                      isExpanded={true}
+                      onToggle={() => setExpandedCategory(null)}
+                    />
+                  ))}
+              </div>
+            )}
+            
+            {/* Other categories in grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {foodCategories
+                .filter(category => category.id !== expandedCategory)
+                .map((category) => (
+                  <FoodCategory
+                    key={category.id}
+                    category={category}
+                    selectedSeason={selectedSeason}
+                    onItemClick={handleFoodItemClick}
+                    getMealInfo={getFoodItemMealInfo}
+                    isExpanded={false}
+                    onToggle={() => setExpandedCategory(category.id)}
+                  />
+                ))}
+            </div>
           </div>
         </div>
       </main>
