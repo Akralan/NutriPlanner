@@ -11,21 +11,21 @@ export default function BottomNavigation() {
   const [location] = useLocation();
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 glassmorphism rounded-t-3xl p-4 shadow-lg border-t-2 border-white/30">
+    <nav className="absolute bottom-0 left-0 right-0 glassmorphism p-2 shadow-lg border-t border-white/20">
       <div className="flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = location === item.path;
           return (
             <Link key={item.path} href={item.path}>
               <button
-                className={`flex flex-col items-center space-y-1 p-2 rounded-xl transition-all duration-200 ${
+                className={`flex flex-col items-center space-y-1 p-1 rounded-lg transition-all duration-200 ${
                   isActive 
-                    ? "glassmorphism-dark border-2 border-white/40 bg-white/50" 
-                    : "hover:glassmorphism-dark hover:border border-white/20"
+                    ? "bg-white/30 border border-white/40" 
+                    : "hover:bg-white/20"
                 }`}
               >
-                <span className="text-xl drop-shadow-sm">{item.icon}</span>
-                <span className={`text-xs font-bold drop-shadow-sm ${
+                <span className="text-sm drop-shadow-sm">{item.icon}</span>
+                <span className={`text-xs font-medium drop-shadow-sm ${
                   isActive ? "text-gray-800" : "text-gray-700"
                 }`}>
                   {item.label}
