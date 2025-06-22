@@ -13,9 +13,14 @@ interface FoodCategoryProps {
   };
   selectedSeason: string;
   onItemClick: (item: FoodItem) => void;
+  getMealInfo?: (foodItemId: number) => {
+    mealIndex: number;
+    color: string;
+    mealId: number;
+  } | null;
 }
 
-export default function FoodCategory({ category, selectedSeason, onItemClick }: FoodCategoryProps) {
+export default function FoodCategory({ category, selectedSeason, onItemClick, getMealInfo }: FoodCategoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: items = [], isLoading } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items", { category: category.id, season: selectedSeason }],
@@ -70,6 +75,7 @@ export default function FoodCategory({ category, selectedSeason, onItemClick }: 
                     key={item.id}
                     item={item}
                     onClick={() => onItemClick(item)}
+                    mealInfo={getMealInfo ? getMealInfo(item.id) : null}
                   />
                 ))}
               </div>

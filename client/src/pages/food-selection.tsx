@@ -44,6 +44,38 @@ export default function FoodSelection() {
     enabled: !!listId,
   });
 
+  // Get existing meals for color coding
+  const { data: existingMeals = [] } = useQuery<any[]>({
+    queryKey: [`/api/grocery-lists/${listId}/meals`],
+    enabled: !!listId,
+  });
+
+  // Color system for meal badges
+  const mealColors = [
+    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", 
+    "bg-pink-500", "bg-teal-500", "bg-red-500", "bg-indigo-500"
+  ];
+
+  // Function to get meal color by index
+  const getMealColor = (mealIndex: number) => {
+    return mealColors[mealIndex % mealColors.length];
+  };
+
+  // Function to check if a food item is in any existing meal and return the meal info
+  const getFoodItemMealInfo = (foodItemId: number) => {
+    for (let i = 0; i < existingMeals.length; i++) {
+      const meal = existingMeals[i];
+      if (meal.ingredients && meal.ingredients.some((ing: any) => ing.foodItemId === foodItemId)) {
+        return {
+          mealIndex: i + 1,
+          color: getMealColor(i),
+          mealId: meal.id
+        };
+      }
+    }
+    return null;
+  };
+
   // Calculate target calories per meal
   const targetCaloriesPerMeal = user?.weight && user?.height 
     ? calculateCaloriesPerMeal(
@@ -135,10 +167,21 @@ export default function FoodSelection() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
       queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/items`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] }); // Invalidate meals to update pastilles
       queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] }); // Invalidate home page cache
       
       // Clear all list items for next meal
       queryClient.setQueryData([`/api/grocery-lists/${listId}/items`], []);
+      
+      // Reset current meal macros for next meal
+      setCurrentMealMacros({
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0,
+        ingredientCount: 0
+      });
     },
     onError: () => {
       toast({
@@ -243,12 +286,29 @@ export default function FoodSelection() {
         {/* Food Categories */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Ajouter des aliments</h3>
+          
+          {/* Existing Meals List */}
+          {existingMeals.length > 0 && (
+            <div className="mb-4 p-3 glassmorphism rounded-xl border-2 border-white/20">
+              <p className="text-xs font-medium text-gray-600 mb-2">Repas existants:</p>
+              <div className="flex flex-wrap gap-2">
+                {existingMeals.map((meal, index) => (
+                  <div key={meal.id} className="flex items-center space-x-1">
+                    <div className={`w-3 h-3 rounded-full ${getMealColor(index)}`}></div>
+                    <span className="text-xs font-medium text-gray-700">Repas {index + 1}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {foodCategories.map((category) => (
             <FoodCategory
               key={category.id}
               category={category}
               selectedSeason={selectedSeason}
               onItemClick={handleFoodItemClick}
+              getMealInfo={getFoodItemMealInfo}
             />
           ))}
         </div>
