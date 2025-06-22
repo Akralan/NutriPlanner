@@ -169,6 +169,8 @@ export const insertListItemSchema = createInsertSchema(listItems).omit({
 export const insertMealSchema = createInsertSchema(meals).omit({
   id: true,
   createdAt: true,
+}).extend({
+  ingredients: z.array(z.any()).default([]),
 });
 
 export const insertNutritionLogSchema = createInsertSchema(nutritionLogs).omit({

@@ -95,6 +95,12 @@ export default function FoodSelection() {
         protein: Math.round(currentMealMacros.protein),
         fat: Math.round(currentMealMacros.fat),
         carbs: Math.round(currentMealMacros.carbs),
+        completed: false,
+        ingredients: listItems.map(item => ({
+          foodItemId: item.foodItemId,
+          quantity: item.quantity,
+          unit: item.unit
+        }))
       });
     },
     onSuccess: () => {
