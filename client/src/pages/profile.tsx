@@ -75,7 +75,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <div className="app-container">
-        <div className="p-6 pb-24">
+        <div className="p-6">
           <div className="flex items-center justify-center min-h-[50vh]">
             <div className="glassmorphism rounded-2xl p-8 animate-pulse">
               <div className="w-32 h-8 bg-gray-300 rounded mb-4"></div>
@@ -91,7 +91,7 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="app-container">
-        <div className="p-6 pb-24">
+        <div className="p-6">
           <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
             <h3 className="text-lg font-bold text-gray-800 mb-2">Non connecté</h3>
             <p className="text-gray-600">Veuillez vous connecter pour accéder à votre profil.</p>
@@ -104,7 +104,7 @@ export default function Profile() {
 
   return (
     <div className="app-container lg:max-w-6xl fade-for-mic">
-      <div className="p-6 pb-24">
+      <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
           <Button
