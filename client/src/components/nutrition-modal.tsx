@@ -57,7 +57,7 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glassmorphism rounded-3xl border-0 shadow-xl max-w-sm mx-4">
+      <DialogContent className="glassmorphism rounded-3xl border-0 shadow-xl w-[90vw] max-w-sm mx-auto p-4">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-3 text-xl font-bold text-gray-800">
             <span className="text-3xl">{foodItem.emoji}</span>
@@ -65,11 +65,11 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Nutrition Facts */}
-          <div className="glassmorphism rounded-xl p-4 border-2 border-white/30 bg-white/40">
-            <h4 className="font-bold text-gray-800 mb-3">Valeurs nutritionnelles (100g)</h4>
-            <div className="space-y-2 text-sm">
+          <div className="glassmorphism rounded-xl p-3 border-2 border-white/30 bg-white/40">
+            <h4 className="font-bold text-gray-800 mb-2 text-sm">Valeurs nutritionnelles (100g)</h4>
+            <div className="space-y-1 text-xs">
               <div className="flex justify-between text-gray-800 font-medium">
                 <span>Calories</span>
                 <span className="font-bold">{nutrition.calories || 0} kcal</span>
@@ -108,13 +108,13 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
           </div>
 
           {/* Quantity Selector */}
-          <div className="glassmorphism rounded-xl p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Quantité</label>
-            <div className="flex items-center space-x-3">
+          <div className="glassmorphism rounded-xl p-3">
+            <label className="block text-xs font-medium text-gray-700 mb-2">Quantité</label>
+            <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="glassmorphism border-2 border-white/30 rounded-full w-8 h-8 p-0 text-gray-800 font-bold hover:bg-white/40"
+                className="glassmorphism border-2 border-white/30 rounded-full w-7 h-7 p-0 text-gray-800 font-bold hover:bg-white/40 flex-shrink-0 text-xs"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 -
@@ -123,19 +123,19 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="glassmorphism border-0 text-center font-medium text-gray-800 w-16"
+                className="glassmorphism border-0 text-center font-medium text-gray-800 w-12 h-8 text-sm flex-shrink-0"
                 min={1}
               />
               <Button
                 variant="outline"
                 size="sm"
-                className="glassmorphism border-2 border-white/30 rounded-full w-8 h-8 p-0 text-gray-800 font-bold hover:bg-white/40"
+                className="glassmorphism border-2 border-white/30 rounded-full w-7 h-7 p-0 text-gray-800 font-bold hover:bg-white/40 flex-shrink-0 text-xs"
                 onClick={() => setQuantity(quantity + 1)}
               >
                 +
               </Button>
               <Select value={unit} onValueChange={setUnit}>
-                <SelectTrigger className="glassmorphism border-0 text-gray-800 font-medium w-24">
+                <SelectTrigger className="glassmorphism border-0 text-gray-800 font-medium h-8 text-xs min-w-0 flex-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
