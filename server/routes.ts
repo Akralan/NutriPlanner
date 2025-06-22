@@ -1,13 +1,15 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { body, validationResult } from "express-validator";
 import { storage } from "./storage";
 import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
-import { setupSession, requireAuth } from "./auth";
+import { generateToken, requireAuth } from "./auth";
+
+interface AuthRequest extends Request {
+  userId?: number;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
-  app.use(setupSession());
 
   // Input validation middleware
   const validateRegistration = [
@@ -23,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ];
 
   // Auth routes
-  app.post("/api/auth/register", validateRegistration, async (req, res) => {
+  app.post("/api/auth/register", validateRegistration, async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -39,16 +41,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.createUser(validatedData);
-      req.session.userId = user.id;
+      const token = generateToken(user.id, user.email);
       
       const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      res.json({ user: userWithoutPassword, token });
     } catch (error) {
       res.status(400).json({ message: "Données d'inscription invalides" });
     }
   });
 
-  app.post("/api/auth/login", validateLogin, async (req, res) => {
+  app.post("/api/auth/login", validateLogin, async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -62,21 +64,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Email ou mot de passe invalide" });
       }
 
-      req.session.userId = user.id;
+      const token = generateToken(user.id, user.email);
       const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      res.json({ user: userWithoutPassword, token });
     } catch (error) {
       res.status(400).json({ message: "Données de connexion invalides" });
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Erreur lors de la déconnexion" });
-      }
-      res.json({ message: "Déconnexion réussie" });
-    });
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    // With JWT, logout is handled client-side by removing the token
+    res.json({ message: "Déconnexion réussie" });
   });
 
   app.get("/api/auth/user", requireAuth, async (req, res) => {

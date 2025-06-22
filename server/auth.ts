@@ -1,47 +1,65 @@
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
-declare module "express-session" {
-  interface SessionData {
-    userId: number;
+interface AuthRequest extends Request {
+  userId?: number;
+}
+
+interface JWTPayload {
+  userId: number;
+  email: string;
+  iat: number;
+  exp: number;
+}
+
+export function generateToken(userId: number, email: string): string {
+  const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+  if (!jwtSecret || jwtSecret.length < 32) {
+    throw new Error("JWT_SECRET must be set and at least 32 characters long");
+  }
+
+  return jwt.sign(
+    { userId, email },
+    jwtSecret,
+    { 
+      expiresIn: '24h',
+      issuer: 'meal-planner-app',
+      audience: 'meal-planner-users'
+    }
+  );
+}
+
+export function verifyToken(token: string): JWTPayload | null {
+  try {
+    const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET not configured");
+    }
+
+    const decoded = jwt.verify(token, jwtSecret, {
+      issuer: 'meal-planner-app',
+      audience: 'meal-planner-users'
+    }) as JWTPayload;
+
+    return decoded;
+  } catch (error) {
+    return null;
   }
 }
 
-const pgSession = connectPgSimple(session);
+export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-export function setupSession() {
-  // Ensure required environment variables
-  const sessionSecret = process.env.SESSION_SECRET;
-  if (!sessionSecret || sessionSecret.length < 32) {
-    throw new Error("SESSION_SECRET must be set and at least 32 characters long");
+  if (!token) {
+    return res.status(401).json({ message: "Authentication token required" });
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  return session({
-    store: new pgSession({
-      pool: pool,
-      tableName: "sessions",
-      createTableIfMissing: false,
-    }),
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    name: "sessionId", // Hide default session name
-    cookie: {
-      secure: isProduction, // HTTPS only in production
-      httpOnly: true,
-      sameSite: "strict", // CSRF protection
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours (reduced from 7 days)
-    },
-    rolling: true, // Reset expiration on activity
-  });
-}
-
-export function requireAuth(req: any, res: any, next: any) {
-  if (req.session?.userId) {
-    return next();
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
-  return res.status(401).json({ message: "Authentication required" });
+
+  req.userId = decoded.userId;
+  next();
 }
