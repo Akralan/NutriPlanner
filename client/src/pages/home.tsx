@@ -46,8 +46,8 @@ export default function Home() {
   // Get today's completed meals
   const today = new Date().toDateString();
   const todayCompletedMeals = completedMeals.filter((meal: any) => {
-    if (!meal.updatedAt) return false;
-    const mealDate = new Date(meal.updatedAt).toDateString();
+    if (!meal.completedAt) return false;
+    const mealDate = new Date(meal.completedAt).toDateString();
     return mealDate === today;
   });
 
@@ -94,8 +94,8 @@ export default function Home() {
   const chartData = last7Days.map(date => {
     const dayString = date.toDateString();
     const dayCompletedMeals = completedMeals.filter((meal: any) => {
-      if (!meal.updatedAt) return false;
-      return new Date(meal.updatedAt).toDateString() === dayString;
+      if (!meal.completedAt) return false;
+      return new Date(meal.completedAt).toDateString() === dayString;
     });
     
     const dayCalories = dayCompletedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);

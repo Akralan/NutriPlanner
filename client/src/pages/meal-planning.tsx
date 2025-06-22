@@ -54,6 +54,8 @@ export default function MealPlanning() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
       queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] }); // Invalidate home page cache
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] }); // Invalidate lists cache
       toast({
         title: "Repas mis à jour",
         description: "Le statut du repas a été enregistré",
