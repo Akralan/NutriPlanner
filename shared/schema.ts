@@ -55,13 +55,32 @@ export const meals = pgTable("meals", {
   id: serial("id").primaryKey(),
   listId: integer("list_id").notNull(),
   name: text("name").notNull(),
+  calories: integer("calories").notNull(),
+  protein: integer("protein").notNull(),
+  fat: integer("fat").notNull(),
+  carbs: integer("carbs").notNull(),
   completed: boolean("completed").notNull().default(false),
   ingredients: jsonb("ingredients").notNull(), // Array of { foodItemId, quantity, unit }
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const nutritionLogs = pgTable("nutrition_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: timestamp("date").notNull(),
+  totalCalories: integer("total_calories").notNull(),
+  totalProtein: integer("total_protein").notNull(),
+  totalFat: integer("total_fat").notNull(),
+  totalCarbs: integer("total_carbs").notNull(),
+  targetCalories: integer("target_calories").notNull(),
+  mealsCompleted: integer("meals_completed").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   groceryLists: many(groceryLists),
+  nutritionLogs: many(nutritionLogs),
 }));
 
 export const groceryListsRelations = relations(groceryLists, ({ one, many }) => ({
@@ -88,6 +107,13 @@ export const mealsRelations = relations(meals, ({ one }) => ({
   groceryList: one(groceryLists, {
     fields: [meals.listId],
     references: [groceryLists.id],
+  }),
+}));
+
+export const nutritionLogsRelations = relations(nutritionLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [nutritionLogs.userId],
+    references: [users.id],
   }),
 }));
 
@@ -142,6 +168,12 @@ export const insertListItemSchema = createInsertSchema(listItems).omit({
 
 export const insertMealSchema = createInsertSchema(meals).omit({
   id: true,
+  createdAt: true,
+});
+
+export const insertNutritionLogSchema = createInsertSchema(nutritionLogs).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Types
@@ -161,3 +193,6 @@ export type InsertListItem = z.infer<typeof insertListItemSchema>;
 
 export type Meal = typeof meals.$inferSelect;
 export type InsertMeal = z.infer<typeof insertMealSchema>;
+
+export type NutritionLog = typeof nutritionLogs.$inferSelect;
+export type InsertNutritionLog = z.infer<typeof insertNutritionLogSchema>;

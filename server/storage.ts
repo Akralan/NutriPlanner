@@ -4,6 +4,7 @@ import {
   foodItems, 
   listItems, 
   meals,
+  nutritionLogs,
   type User,
   type InsertUser,
   type UpdateProfile,
@@ -14,7 +15,9 @@ import {
   type ListItem,
   type InsertListItem,
   type Meal,
-  type InsertMeal
+  type InsertMeal,
+  type NutritionLog,
+  type InsertNutritionLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -49,6 +52,11 @@ export interface IStorage {
   getMeals(listId: number): Promise<Meal[]>;
   updateMeal(id: number, updates: Partial<Meal>): Promise<Meal | undefined>;
   deleteMeal(id: number): Promise<boolean>;
+  
+  // Nutrition Logs
+  createNutritionLog(log: InsertNutritionLog): Promise<NutritionLog>;
+  getNutritionLogs(userId: number, days?: number): Promise<NutritionLog[]>;
+  updateTodayNutritionLog(userId: number, updates: Partial<NutritionLog>): Promise<NutritionLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -200,7 +208,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(listItems)
       .where(eq(listItems.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Meals
@@ -241,11 +249,111 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(meals)
       .where(eq(meals.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Nutrition Logs
+  async createNutritionLog(logData: InsertNutritionLog): Promise<NutritionLog> {
+    const [log] = await db
+      .insert(nutritionLogs)
+      .values(logData)
+      .returning();
+    return log;
+  }
+
+  async getNutritionLogs(userId: number, days: number = 30): Promise<NutritionLog[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const logs = await db
+      .select()
+      .from(nutritionLogs)
+      .where(eq(nutritionLogs.userId, userId))
+      .orderBy(nutritionLogs.date);
+    
+    return logs;
+  }
+
+  async updateTodayNutritionLog(userId: number, updates: Partial<NutritionLog>): Promise<NutritionLog> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Try to find existing log for today
+    const [existingLog] = await db
+      .select()
+      .from(nutritionLogs)
+      .where(eq(nutritionLogs.userId, userId))
+      .limit(1);
+    
+    if (existingLog) {
+      const [updatedLog] = await db
+        .update(nutritionLogs)
+        .set(updates)
+        .where(eq(nutritionLogs.id, existingLog.id))
+        .returning();
+      return updatedLog;
+    } else {
+      // Create new log for today
+      const [newLog] = await db
+        .insert(nutritionLogs)
+        .values({
+          userId,
+          date: today,
+          totalCalories: updates.totalCalories || 0,
+          totalProtein: updates.totalProtein || 0,
+          totalFat: updates.totalFat || 0,
+          totalCarbs: updates.totalCarbs || 0,
+          targetCalories: updates.targetCalories || 2000,
+          mealsCompleted: updates.mealsCompleted || 0,
+        })
+        .returning();
+      return newLog;
+    }
   }
 }
 
 export const storage = new DatabaseStorage();
 
-// Initialize food items on startup
+// Initialize food items and sample nutrition data on startup
 storage.initializeFoodItems().catch(console.error);
+
+// Create sample nutrition logs for testing
+async function createSampleNutritionLogs() {
+  try {
+    // Check if we already have nutrition logs
+    const existingLogs = await storage.getNutritionLogs(2, 7); // User ID 2
+    if (existingLogs.length > 0) return;
+
+    // Create sample data for the last 7 days
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const targetCalories = 2200;
+      const consumed = 1800 + Math.random() * 600; // Random between 1800-2400
+      const protein = 80 + Math.random() * 40; // Random between 80-120g
+      const fat = 60 + Math.random() * 30; // Random between 60-90g
+      const carbs = 200 + Math.random() * 100; // Random between 200-300g
+      const meals = Math.floor(2 + Math.random() * 3); // 2-4 meals
+
+      await storage.createNutritionLog({
+        userId: 2,
+        date,
+        totalCalories: Math.round(consumed),
+        totalProtein: Math.round(protein),
+        totalFat: Math.round(fat),
+        totalCarbs: Math.round(carbs),
+        targetCalories,
+        mealsCompleted: meals,
+      });
+    }
+    console.log("Sample nutrition logs created");
+  } catch (error) {
+    console.error("Error creating sample nutrition logs:", error);
+  }
+}
+
+// Initialize sample data with a delay to ensure user exists
+setTimeout(createSampleNutritionLogs, 2000);

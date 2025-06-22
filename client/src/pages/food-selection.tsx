@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, calculateDailyCalories, calculateCaloriesPerMeal, calculateMacros } from "@/hooks/useAuth";
@@ -35,7 +35,7 @@ export default function FoodSelection() {
   });
 
   const { data: listItems = [] } = useQuery<any[]>({
-    queryKey: ["/api/grocery-lists", listId, "items"],
+    queryKey: [`/api/grocery-lists/${listId}/items`],
     enabled: !!listId,
   });
 
@@ -54,16 +54,7 @@ export default function FoodSelection() {
 
   // Calculate current meal progress
   useEffect(() => {
-    if (listItems.length === 0 || foodItems.length === 0) {
-      setCurrentMealMacros({
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbs: 0,
-        ingredientCount: 0
-      });
-      return;
-    }
+    if (!listItems || !foodItems) return;
 
     let totalCalories = 0;
     let totalProtein = 0;
@@ -73,8 +64,8 @@ export default function FoodSelection() {
 
     listItems.forEach(item => {
       const foodItem = foodItems.find(f => f.id === item.foodItemId);
-      const nutrition = foodItem?.nutrition as any;
-      if (nutrition) {
+      if (foodItem?.nutrition) {
+        const nutrition = foodItem.nutrition as any;
         const multiplier = item.quantity || 1;
         totalCalories += (nutrition.calories || 0) * multiplier;
         totalProtein += (nutrition.protein || 0) * multiplier;
@@ -84,26 +75,14 @@ export default function FoodSelection() {
       }
     });
 
-    const newMacros = {
+    setCurrentMealMacros({
       calories: totalCalories,
       protein: totalProtein,
       fat: totalFat,
       carbs: totalCarbs,
       ingredientCount
-    };
-
-    // Only update if values actually changed to prevent infinite loop
-    setCurrentMealMacros(prev => {
-      if (prev.calories !== newMacros.calories ||
-          prev.protein !== newMacros.protein ||
-          prev.fat !== newMacros.fat ||
-          prev.carbs !== newMacros.carbs ||
-          prev.ingredientCount !== newMacros.ingredientCount) {
-        return newMacros;
-      }
-      return prev;
     });
-  }, [listItems.length, foodItems.length]);
+  }, [listItems?.length, foodItems?.length]);
 
   const createMealMutation = useMutation({
     mutationFn: async () => {
@@ -123,16 +102,32 @@ export default function FoodSelection() {
         title: "Repas validé",
         description: "Le repas a été ajouté à votre liste !",
       });
+      
+      // Update nutrition log
+      if (user) {
+        const targetCalories = calculateDailyCalories(
+          user.weight || 70,
+          user.height || 170,
+          user.weeklyWorkouts || 3,
+          user.calorieThreshold || 0
+        );
+        
+        apiRequest("POST", "/api/nutrition-logs", {
+          totalCalories: currentMealMacros.calories,
+          totalProtein: currentMealMacros.protein,
+          totalFat: currentMealMacros.fat,
+          totalCarbs: currentMealMacros.carbs,
+          targetCalories,
+          mealsCompleted: 1,
+        }).catch(error => console.error("Failed to update nutrition log:", error));
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists", listId, "items"] });
-      // Reset current meal progress
-      setCurrentMealMacros({
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbs: 0,
-        ingredientCount: 0
-      });
+      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/items`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+      
+      // Clear all list items for next meal
+      queryClient.setQueryData([`/api/grocery-lists/${listId}/items`], []);
     },
     onError: () => {
       toast({

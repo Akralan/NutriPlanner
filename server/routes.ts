@@ -284,6 +284,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Nutrition Logs
+  app.get("/api/nutrition-logs/:period?", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const period = req.params.period || "7d";
+      const days = period === "30d" ? 30 : 7;
+      
+      const logs = await storage.getNutritionLogs(userId, days);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch nutrition logs" });
+    }
+  });
+
+  app.post("/api/nutrition-logs", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const log = await storage.updateTodayNutritionLog(userId, req.body);
+      res.json(log);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update nutrition log" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

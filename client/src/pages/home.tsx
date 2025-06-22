@@ -1,185 +1,232 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Calendar, Target } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts";
 import BottomNavigation from "@/components/bottom-navigation";
-import FoodCategory from "@/components/food-category";
-import NutritionModal from "@/components/nutrition-modal";
-import { foodCategories, seasons } from "@/lib/food-data";
-import type { FoodItem, GroceryList } from "@shared/schema";
+import type { NutritionLog } from "@shared/schema";
 
 export default function Home() {
-  const [selectedSeason, setSelectedSeason] = useState("all");
-  const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentListId, setCurrentListId] = useState<number | undefined>();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d">("7d");
 
-  const { data: groceryLists = [] } = useQuery<GroceryList[]>({
-    queryKey: ["/api/grocery-lists"],
+  const { data: nutritionLogs = [] } = useQuery<NutritionLog[]>({
+    queryKey: ["/api/nutrition-logs", selectedPeriod],
   });
 
-  const activeList = groceryLists.find(list => list.status === "active");
-  const totalMeals = groceryLists.reduce((sum, list) => sum + list.mealCount, 0);
-
-  const createListMutation = useMutation({
-    mutationFn: async () => {
-      const now = new Date().toLocaleDateString("fr-FR");
-      return apiRequest("POST", "/api/grocery-lists", {
-        name: `Liste du ${now}`,
-        createdAt: new Date().toISOString(),
-        mealCount: 0,
-        status: "active",
-      });
-    },
-    onSuccess: (response) => {
-      response.json().then((newList) => {
-        setCurrentListId(newList.id);
-        toast({
-          title: "Liste créée",
-          description: "Une nouvelle liste de courses a été créée.",
-        });
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer une nouvelle liste.",
-        variant: "destructive",
-      });
-    },
+  // Calculate today's nutrition score
+  const todayLog = nutritionLogs.find(log => {
+    const logDate = new Date(log.date).toDateString();
+    const today = new Date().toDateString();
+    return logDate === today;
   });
 
-  const handleFoodItemClick = (item: FoodItem) => {
-    if (!activeList && !currentListId) {
-      toast({
-        title: "Aucune liste active",
-        description: "Créez d'abord une liste de courses.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSelectedFoodItem(item);
-    setIsModalOpen(true);
+  const calculateNutritionScore = (log: NutritionLog) => {
+    if (!log) return 0;
+    
+    const calorieScore = Math.min(100, (log.totalCalories / log.targetCalories) * 100);
+    const proteinTarget = (log.targetCalories * 0.25) / 4; // 25% of calories from protein
+    const proteinScore = Math.min(100, (log.totalProtein / proteinTarget) * 100);
+    
+    return Math.round((calorieScore + proteinScore) / 2);
   };
 
-  const handleCreateList = () => {
-    if (activeList) {
-      setCurrentListId(activeList.id);
-      toast({
-        title: "Liste existante",
-        description: "Vous avez déjà une liste active.",
-      });
-    } else {
-      createListMutation.mutate();
-    }
+  const todayScore = todayLog ? calculateNutritionScore(todayLog) : 0;
+
+  // Prepare chart data
+  const chartData = nutritionLogs.slice(-7).map(log => ({
+    date: new Date(log.date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+    score: calculateNutritionScore(log),
+    calories: log.totalCalories,
+    target: log.targetCalories,
+  }));
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    return "text-red-600";
   };
+
+  const getScoreBadge = (score: number) => {
+    if (score >= 90) return { label: "Excellent", variant: "default" as const };
+    if (score >= 80) return { label: "Très bien", variant: "secondary" as const };
+    if (score >= 60) return { label: "Bien", variant: "outline" as const };
+    return { label: "À améliorer", variant: "destructive" as const };
+  };
+
+  const weeklyAverage = chartData.length > 0 
+    ? Math.round(chartData.reduce((sum, day) => sum + day.score, 0) / chartData.length)
+    : 0;
+
+  const trend = chartData.length >= 2 
+    ? chartData[chartData.length - 1].score - chartData[chartData.length - 2].score
+    : 0;
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="glassmorphism rounded-b-3xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">NutriListes</h1>
-          <div className="glassmorphism-dark rounded-full p-2">
-            <span className="text-xl">🥗</span>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
+      <div className="p-4 space-y-6">
+        {/* Header */}
+        <div className="text-center pt-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Bonjour {user?.firstName} 👋
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Votre tableau de bord nutritionnel
+          </p>
         </div>
-        
-        {/* Meal Counter */}
-        <div className="glassmorphism rounded-2xl p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700 font-medium">Repas planifiés</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-green-600">{totalMeals}</span>
-              <span className="text-gray-500">repas</span>
+
+        {/* Today's Score Card */}
+        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Target className="h-5 w-5" />
+              Score du jour
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className={`text-6xl font-bold ${getScoreColor(todayScore)}`}>
+              {todayScore}
+              <span className="text-2xl text-gray-500">/100</span>
             </div>
-          </div>
-          <div className="mt-2 bg-green-200 rounded-full h-2">
-            <div 
-              className="bg-green-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, (totalMeals / 15) * 100)}%` }}
-            ></div>
-          </div>
-        </div>
+            <Badge {...getScoreBadge(todayScore)}>
+              {getScoreBadge(todayScore).label}
+            </Badge>
+            
+            {todayLog && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="text-center">
+                  <p className="text-2xl font-semibold text-blue-600">
+                    {todayLog.totalCalories}
+                  </p>
+                  <p className="text-sm text-gray-500">Calories</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold text-purple-600">
+                    {todayLog.mealsCompleted}
+                  </p>
+                  <p className="text-sm text-gray-500">Repas</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Season Filter */}
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {seasons.map((season) => (
-            <Button
-              key={season.id}
-              variant="ghost"
-              size="sm"
-              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-0 ${
-                selectedSeason === season.id
-                  ? "glassmorphism border-2 border-white/40 text-gray-800 bg-white/50"
-                  : "glassmorphism text-gray-800 border-2 border-white/20"
-              }`}
-              onClick={() => setSelectedSeason(season.id)}
-            >
-              {season.emoji} {season.name}
-            </Button>
-          ))}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="p-6 pb-24">
-        {/* Create List Button */}
-        <div className="mb-8">
-          <Button
-            onClick={handleCreateList}
-            disabled={createListMutation.isPending}
-            className="w-full glassmorphism rounded-2xl p-4 shadow-lg hover:scale-105 transition-transform border-2 border-white/30 bg-white/20 text-gray-800 font-bold text-lg hover:bg-white/40"
-          >
-            <div className="flex items-center justify-center space-x-3">
-              <span className="text-2xl">➕</span>
-              <span>
-                {createListMutation.isPending 
-                  ? "Création..." 
-                  : activeList 
-                    ? "Liste active existante" 
-                    : "Créer une nouvelle liste"
-                }
+        {/* Weekly Trend */}
+        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Tendance hebdomadaire
               </span>
+              <div className="flex items-center gap-2">
+                {trend > 0 ? (
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-red-600" />
+                )}
+                <span className="text-sm text-gray-500">
+                  Moyenne: {weeklyAverage}/100
+                </span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    domain={[0, 100]}
+                    axisLine={false}
+                    tickLine={false}
+                    fontSize={12}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: "#1d4ed8" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          </Button>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Food Categories - Only show if there's an active list */}
-        {(activeList || currentListId) ? (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Ajouter des aliments à votre liste</h3>
-            {foodCategories.map((category) => (
-              <FoodCategory
-                key={category.id}
-                category={category}
-                selectedSeason={selectedSeason}
-                onItemClick={handleFoodItemClick}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
-            <span className="text-4xl mb-4 block">🛒</span>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Commencez par créer une liste</h3>
-            <p className="text-gray-600">Créez d'abord une liste de courses pour commencer à ajouter des aliments.</p>
-          </div>
-        )}
-      </main>
+        {/* Calories Chart */}
+        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Suivi des calories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    fontSize={12}
+                  />
+                  <Bar dataKey="calories" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="target" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded" />
+                <span className="text-sm text-gray-600">Consommé</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-gray-300 rounded" />
+                <span className="text-sm text-gray-600">Objectif</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">
+                {nutritionLogs.filter(log => calculateNutritionScore(log) >= 80).length}
+              </p>
+              <p className="text-sm text-gray-500">Jours excellents</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {nutritionLogs.reduce((sum, log) => sum + (log.mealsCompleted || 0), 0)}
+              </p>
+              <p className="text-sm text-gray-500">Repas total</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <BottomNavigation />
-
-      <NutritionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        foodItem={selectedFoodItem}
-        currentListId={currentListId || activeList?.id}
-      />
     </div>
   );
 }
