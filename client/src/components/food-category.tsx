@@ -26,12 +26,12 @@ export default function FoodCategory({ category, selectedSeason, onItemClick }: 
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="glassmorphism-dark rounded-xl p-3 animate-pulse">
+            <div key={i} className="glassmorphism rounded-xl p-3 animate-pulse border-2 border-white/20">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-white/20 rounded"></div>
+                <div className="w-6 h-6 bg-gray-400 rounded"></div>
                 <div className="space-y-2">
-                  <div className="w-20 h-3 bg-white/20 rounded"></div>
-                  <div className="w-16 h-2 bg-white/20 rounded"></div>
+                  <div className="w-20 h-3 bg-gray-400 rounded"></div>
+                  <div className="w-16 h-2 bg-gray-400 rounded"></div>
                 </div>
               </div>
             </div>

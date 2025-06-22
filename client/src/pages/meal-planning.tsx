@@ -188,7 +188,7 @@ export default function MealPlanning() {
             meals.map((meal) => (
               <div key={meal.id} className="glassmorphism rounded-2xl p-4 shadow-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-800">{meal.name}</h4>
+                  <h4 className="font-bold text-gray-800">{meal.name}</h4>
                   <input
                     type="checkbox"
                     checked={meal.completed}
@@ -235,8 +235,8 @@ export default function MealPlanning() {
           <div className="space-y-4">
             {/* Selected Ingredients */}
             {selectedIngredients.length > 0 && (
-              <div className="glassmorphism-dark rounded-xl p-4">
-                <h4 className="font-semibold text-white mb-3">Ingrédients sélectionnés</h4>
+              <div className="glassmorphism rounded-xl p-4 border-2 border-white/30 bg-white/40">
+                <h4 className="font-bold text-gray-800 mb-3">Ingrédients sélectionnés</h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedIngredients.map((ingredient) => (
                     <div
@@ -246,14 +246,14 @@ export default function MealPlanning() {
                       {ingredient.foodItem.emoji} {ingredient.foodItem.name}
                       <button
                         onClick={() => handleRemoveIngredient(ingredient.foodItemId)}
-                        className="ml-1 text-xs hover:text-red-600"
+                        className="ml-1 text-xs hover:text-red-600 font-bold"
                       >
                         ×
                       </button>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-300 mt-2">
+                <p className="text-xs text-gray-700 font-medium mt-2">
                   {selectedIngredients.length}/4+ ingrédients 
                   {!selectedIngredients.some(ing => ing.foodItem.category === "proteins") && 
                     " (manque une protéine)"}
@@ -277,7 +277,7 @@ export default function MealPlanning() {
             <Button
               onClick={() => createMealMutation.mutate()}
               disabled={createMealMutation.isPending || selectedIngredients.length < 4 || !selectedIngredients.some(ing => ing.foodItem.category === "proteins")}
-              className="w-full glassmorphism-dark border-0 rounded-2xl p-3 text-white font-semibold hover:bg-white/20 transition-all disabled:opacity-50"
+              className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all disabled:opacity-50 bg-white/20"
             >
               {createMealMutation.isPending ? "Création..." : "Créer le repas"}
             </Button>

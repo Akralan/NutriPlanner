@@ -49,7 +49,7 @@ export default function Lists() {
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Aucune liste</h3>
             <p className="text-gray-600 mb-4">Créez votre première liste de courses depuis l'accueil.</p>
             <Link href="/">
-              <button className="glassmorphism-dark rounded-xl px-4 py-2 text-white font-medium hover:bg-white/20 transition-colors">
+              <button className="glassmorphism border-2 border-white/30 rounded-xl px-4 py-2 text-gray-800 font-bold hover:bg-white/40 transition-colors bg-white/20">
                 Aller à l'accueil
               </button>
             </Link>

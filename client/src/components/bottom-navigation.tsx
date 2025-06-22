@@ -23,8 +23,8 @@ export default function BottomNavigation() {
                 }`}
               >
                 <span className="text-xl">{item.icon}</span>
-                <span className={`text-xs font-medium ${
-                  isActive ? "text-gray-700" : "text-gray-600"
+                <span className={`text-xs font-bold ${
+                  isActive ? "text-gray-800" : "text-gray-700"
                 }`}>
                   {item.label}
                 </span>

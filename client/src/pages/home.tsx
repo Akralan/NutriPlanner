@@ -114,10 +114,10 @@ export default function Home() {
               key={season.id}
               variant="ghost"
               size="sm"
-              className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap border-0 ${
+              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-0 ${
                 selectedSeason === season.id
-                  ? "glassmorphism-dark text-white"
-                  : "glassmorphism text-gray-700"
+                  ? "glassmorphism border-2 border-white/40 text-gray-800 bg-white/50"
+                  : "glassmorphism text-gray-800 border-2 border-white/20"
               }`}
               onClick={() => setSelectedSeason(season.id)}
             >
@@ -145,7 +145,7 @@ export default function Home() {
           <Button
             onClick={handleCreateList}
             disabled={createListMutation.isPending}
-            className="w-full glassmorphism rounded-2xl p-4 shadow-lg hover:scale-105 transition-transform border-0 bg-transparent text-gray-800 font-semibold text-lg hover:bg-white/30"
+            className="w-full glassmorphism rounded-2xl p-4 shadow-lg hover:scale-105 transition-transform border-2 border-white/30 bg-white/20 text-gray-800 font-bold text-lg hover:bg-white/40"
           >
             <div className="flex items-center justify-center space-x-3">
               <span className="text-2xl">➕</span>

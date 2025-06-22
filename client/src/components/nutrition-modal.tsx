@@ -67,41 +67,41 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
         
         <div className="space-y-4">
           {/* Nutrition Facts */}
-          <div className="glassmorphism-dark rounded-xl p-4">
-            <h4 className="font-semibold text-white mb-3">Valeurs nutritionnelles (100g)</h4>
+          <div className="glassmorphism rounded-xl p-4 border-2 border-white/30 bg-white/40">
+            <h4 className="font-bold text-gray-800 mb-3">Valeurs nutritionnelles (100g)</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-200">
+              <div className="flex justify-between text-gray-800 font-medium">
                 <span>Calories</span>
-                <span>{nutrition.calories || 0} kcal</span>
+                <span className="font-bold">{nutrition.calories || 0} kcal</span>
               </div>
-              <div className="flex justify-between text-gray-200">
+              <div className="flex justify-between text-gray-800 font-medium">
                 <span>Glucides</span>
-                <span>{nutrition.carbs || 0}g</span>
+                <span className="font-bold">{nutrition.carbs || 0}g</span>
               </div>
-              <div className="flex justify-between text-gray-200">
+              <div className="flex justify-between text-gray-800 font-medium">
                 <span>Protéines</span>
-                <span>{nutrition.protein || 0}g</span>
+                <span className="font-bold">{nutrition.protein || 0}g</span>
               </div>
-              <div className="flex justify-between text-gray-200">
+              <div className="flex justify-between text-gray-800 font-medium">
                 <span>Lipides</span>
-                <span>{nutrition.fat || 0}g</span>
+                <span className="font-bold">{nutrition.fat || 0}g</span>
               </div>
               {nutrition.vitaminA && (
-                <div className="flex justify-between text-gray-200">
+                <div className="flex justify-between text-gray-800 font-medium">
                   <span>Vitamine A</span>
-                  <span>{nutrition.vitaminA}µg</span>
+                  <span className="font-bold">{nutrition.vitaminA}µg</span>
                 </div>
               )}
               {nutrition.vitaminC && (
-                <div className="flex justify-between text-gray-200">
+                <div className="flex justify-between text-gray-800 font-medium">
                   <span>Vitamine C</span>
-                  <span>{nutrition.vitaminC}mg</span>
+                  <span className="font-bold">{nutrition.vitaminC}mg</span>
                 </div>
               )}
               {nutrition.iron && (
-                <div className="flex justify-between text-gray-200">
+                <div className="flex justify-between text-gray-800 font-medium">
                   <span>Fer</span>
-                  <span>{nutrition.iron}mg</span>
+                  <span className="font-bold">{nutrition.iron}mg</span>
                 </div>
               )}
             </div>
@@ -114,7 +114,7 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
               <Button
                 variant="outline"
                 size="sm"
-                className="glassmorphism-dark border-0 rounded-full w-8 h-8 p-0 text-white hover:bg-white/20"
+                className="glassmorphism border-2 border-white/30 rounded-full w-8 h-8 p-0 text-gray-800 font-bold hover:bg-white/40"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 -
@@ -129,7 +129,7 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
               <Button
                 variant="outline"
                 size="sm"
-                className="glassmorphism-dark border-0 rounded-full w-8 h-8 p-0 text-white hover:bg-white/20"
+                className="glassmorphism border-2 border-white/30 rounded-full w-8 h-8 p-0 text-gray-800 font-bold hover:bg-white/40"
                 onClick={() => setQuantity(quantity + 1)}
               >
                 +
@@ -152,7 +152,7 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
             <Button
               onClick={() => addToListMutation.mutate()}
               disabled={addToListMutation.isPending}
-              className="w-full glassmorphism-dark border-0 rounded-2xl p-3 text-white font-semibold hover:bg-white/20 transition-all hover:scale-105"
+              className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all hover:scale-105 bg-white/20"
             >
               {addToListMutation.isPending ? "Ajout..." : "Ajouter à la liste"}
             </Button>
