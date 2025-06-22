@@ -360,8 +360,8 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* User Info - Below the nutritional goals on desktop */}
-        <div className="glassmorphism rounded-2xl p-6 shadow-lg mt-6 lg:max-w-md">
+        {/* User Info - Centered below both sections */}
+        <div className="glassmorphism rounded-2xl p-6 shadow-lg mt-6 max-w-md mx-auto">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
           <div className="space-y-2">
             <div className="flex justify-between">

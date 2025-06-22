@@ -287,10 +287,10 @@ export default function FoodSelection() {
               key={season.id}
               variant="ghost"
               size="sm"
-              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-0 ${
+              className={`rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap border-0 transition-all duration-200 ${
                 selectedSeason === season.id
-                  ? "glassmorphism border-2 border-white/40 text-gray-800 bg-white/50"
-                  : "glassmorphism text-gray-800 border-2 border-white/20"
+                  ? "glassmorphism border-2 border-purple-300/60 text-gray-800 bg-purple-100/40 shadow-md"
+                  : "glassmorphism text-gray-700 border-2 border-white/20 hover:border-white/30"
               }`}
               onClick={() => setSelectedSeason(season.id)}
             >

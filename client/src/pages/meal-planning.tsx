@@ -82,7 +82,7 @@ export default function MealPlanning() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center pt-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
@@ -94,15 +94,17 @@ export default function MealPlanning() {
         </div>
 
         {/* Meals List */}
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {meals.length === 0 ? (
-            <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md">
-              <CardContent className="p-4 text-center">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  Aucun repas planifié
-                </p>
-              </CardContent>
-            </Card>
+            <div className="col-span-full">
+              <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md">
+                <CardContent className="p-4 text-center">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    Aucun repas planifié
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             meals.map((meal) => (
               <Collapsible 
