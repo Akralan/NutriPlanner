@@ -82,7 +82,9 @@
   }
   
   .app-container {
-    @apply max-w-md mx-auto min-h-screen relative bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20;
+    @apply max-w-md mx-auto min-h-screen relative;
+    background: hsla(0, 0%, 100%, 0.1);
+    backdrop-filter: blur(40px);
   }
 
   /* Bottom navigation responsive styling */

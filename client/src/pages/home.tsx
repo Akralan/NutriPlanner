@@ -137,8 +137,8 @@ export default function Home() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
-      <div className="p-4 space-y-3">
+    <div className="app-container">
+      <div className="p-4 space-y-3 pb-24">
         {/* Header */}
         <div className="glassmorphism rounded-2xl p-4 text-center border-2 border-white/30 shadow-lg">
           <h1 className="text-xl font-bold text-gray-800 drop-shadow-sm">
