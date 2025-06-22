@@ -116,117 +116,98 @@ export default function Profile() {
           </Button>
         </div>
 
-        {/* Desktop responsive layout */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
-          {/* Personal Information Form */}
-          <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
+        {/* Check if user has complete profile data */}
+        {user?.height && user?.weight ? (
+          /* Desktop responsive layout for complete profiles */
+          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+            {/* Personal Information Form */}
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">Prénom</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">Nom</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Prénom</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Nom</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="height"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="number"
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="number"
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="height"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="weight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                <FormField
-                  control={form.control}
-                  name="weeklyWorkouts"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="number"
-                          value={field.value || 0}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          className="glassmorphism border-2 border-white/30 rounded-xl"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="calorieThreshold"
+                    name="weeklyWorkouts"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                        <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -240,18 +221,258 @@ export default function Profile() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="calorieThreshold"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              value={field.value || 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mealsPerDay"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              value={field.value || 3}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="text-xs text-gray-600 mt-2">
+                    {(form.watch('calorieThreshold') || 0) < 0 && "Perte de poids"} 
+                    {(form.watch('calorieThreshold') || 0) > 0 && "Prise de masse"}
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={updateProfileMutation.isPending}
+                    className="w-full glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium py-3 rounded-xl shadow-lg transition-all duration-300"
+                  >
+                    {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+
+            {/* Calorie Information */}
+            {caloriesPerMeal && macros && (
+              <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Objectifs nutritionnels par repas</h3>
+                
+                {/* Calories */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">Calories</span>
+                    <span className="text-sm font-bold text-gray-800">{caloriesPerMeal} kcal</span>
+                  </div>
+                </div>
+
+                {/* Macronutrients with Progress Bars */}
+                <div className="space-y-3">
+                  {/* Protéines */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-blue-700">Protéines</span>
+                      <span className="text-sm font-bold text-blue-800">{macros.protein}g</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (macros.protein / (macros.protein * 1.2)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Lipides */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-yellow-700">Lipides</span>
+                      <span className="text-sm font-bold text-yellow-800">{macros.fat}g</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (macros.fat / (macros.fat * 1.2)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Glucides */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-green-700">Glucides</span>
+                      <span className="text-sm font-bold text-green-800">{macros.carbs}g</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (macros.carbs / (macros.carbs * 1.2)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/20">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">{dailyCalories}</div>
+                    <div className="text-xs text-gray-600">kcal / jour</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">{user?.mealsPerDay || 3}</div>
+                    <div className="text-xs text-gray-600">repas / jour</div>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-500 mt-3 text-center">
+                  Seuil calories: {user?.calorieThreshold || 0}% • 30% prot., 25% lip., 45% gluc.
+                </p>
+              </div>
+            )}
+
+            {/* Account Information */}
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 lg:col-span-2">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email :</span>
+                  <span className="text-gray-800 font-medium">{user?.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Membre depuis :</span>
+                  <span className="text-gray-800 font-medium">
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Single column layout for new users without complete profile */
+          <div className="max-w-2xl mx-auto">
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Complétez votre profil</h3>
+              <p className="text-gray-600 mb-6">
+                Renseignez vos informations pour accéder aux objectifs nutritionnels personnalisés.
+              </p>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Prénom</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Nom</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="height"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              placeholder="175"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="weight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              placeholder="70"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="mealsPerDay"
+                    name="weeklyWorkouts"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                        <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
                             type="number"
-                            value={field.value || 3}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
+                            placeholder="3"
+                            value={field.value || 0}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             className="glassmorphism border-2 border-white/30 rounded-xl"
                           />
                         </FormControl>
@@ -259,99 +480,85 @@ export default function Profile() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <div className="text-xs text-gray-600 mt-2">
-                  {(form.watch('calorieThreshold') || 0) < 0 && "Perte de poids"} 
-                  {(form.watch('calorieThreshold') || 0) > 0 && "Prise de masse"}
-                </div>
-
-                <Button 
-                  type="submit" 
-                  disabled={updateProfileMutation.isPending}
-                  className="w-full glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium py-3 rounded-xl shadow-lg transition-all duration-300"
-                >
-                  {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
-                </Button>
-              </form>
-            </Form>
-          </div>
-
-          {/* Calorie Information */}
-          {caloriesPerMeal && macros && (
-            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Objectifs nutritionnels par repas</h3>
-              
-              {/* Calories */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">Calories</span>
-                  <span className="text-sm font-bold text-gray-800">{caloriesPerMeal} kcal</span>
-                </div>
-              </div>
-
-              {/* Macronutrients with Progress Bars */}
-              <div className="space-y-3">
-                {/* Protéines */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-blue-700">Protéines</span>
-                    <span className="text-sm font-bold text-blue-800">{macros.protein}g</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="calorieThreshold"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              placeholder="0"
+                              value={field.value || 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-xs text-gray-500 mt-1">-20% (sèche) à +20% (prise de masse)</p>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mealsPerDay"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number"
+                              placeholder="3"
+                              value={field.value || 3}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
+                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (macros.protein / (macros.protein * 1.2)) * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                {/* Lipides */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-yellow-700">Lipides</span>
-                    <span className="text-sm font-bold text-yellow-800">{macros.fat}g</span>
+                  <div className="text-xs text-gray-600 mt-2">
+                    {(form.watch('calorieThreshold') || 0) < 0 && "Perte de poids"} 
+                    {(form.watch('calorieThreshold') || 0) > 0 && "Prise de masse"}
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (macros.fat / (macros.fat * 1.2)) * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                {/* Glucides */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-green-700">Glucides</span>
-                    <span className="text-sm font-bold text-green-800">{macros.carbs}g</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (macros.carbs / (macros.carbs * 1.2)) * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/20">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-green-600">{dailyCalories}</div>
-                  <div className="text-xs text-gray-600">kcal / jour</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-blue-600">{user?.mealsPerDay || 3}</div>
-                  <div className="text-xs text-gray-600">repas / jour</div>
-                </div>
-              </div>
-              
-              <p className="text-xs text-gray-500 mt-3 text-center">
-                Seuil calories: {user?.calorieThreshold || 0}% • 30% prot., 25% lip., 45% gluc.
-              </p>
+                  <Button 
+                    type="submit" 
+                    disabled={updateProfileMutation.isPending}
+                    className="w-full glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium py-3 rounded-xl shadow-lg transition-all duration-300"
+                  >
+                    {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                  </Button>
+                </form>
+              </Form>
             </div>
-          )}
-        </div>
+
+            {/* Account Information for new users */}
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email :</span>
+                  <span className="text-gray-800 font-medium">{user?.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Membre depuis :</span>
+                  <span className="text-gray-800 font-medium">
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <BottomNavigation />
     </div>
