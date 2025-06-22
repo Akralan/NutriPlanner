@@ -103,7 +103,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="app-container lg:max-w-6xl">
+    <div className="app-container lg:max-w-6xl fade-for-mic">
       <div className="p-6 pb-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
@@ -125,18 +125,18 @@ export default function Profile() {
               <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Prénom</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Prénom</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -148,11 +148,11 @@ export default function Profile() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Nom</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Nom</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -161,20 +161,20 @@ export default function Profile() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="height"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Taille (cm)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
                               type="number"
                               value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -186,14 +186,14 @@ export default function Profile() {
                       name="weight"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Poids (kg)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
                               type="number"
                               value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -207,14 +207,14 @@ export default function Profile() {
                     name="weeklyWorkouts"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
+                        <FormLabel className="text-gray-700 text-sm">Séances de sport par semaine</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
                             type="number"
                             value={field.value || 0}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                            className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                           />
                         </FormControl>
                         <FormMessage />
@@ -222,20 +222,20 @@ export default function Profile() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="calorieThreshold"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Seuil calories (%)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
                               type="number"
                               value={field.value || 0}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -247,14 +247,14 @@ export default function Profile() {
                       name="mealsPerDay"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Repas par jour</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
                               type="number"
                               value={field.value || 3}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -381,18 +381,18 @@ export default function Profile() {
               </p>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Prénom</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Prénom</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -404,11 +404,11 @@ export default function Profile() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Nom</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Nom</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -417,13 +417,13 @@ export default function Profile() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="height"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Taille (cm)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -431,7 +431,7 @@ export default function Profile() {
                               placeholder="175"
                               value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -443,7 +443,7 @@ export default function Profile() {
                       name="weight"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Poids (kg)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -451,7 +451,7 @@ export default function Profile() {
                               placeholder="70"
                               value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -465,7 +465,7 @@ export default function Profile() {
                     name="weeklyWorkouts"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
+                        <FormLabel className="text-gray-700 text-sm">Séances de sport par semaine</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -473,7 +473,7 @@ export default function Profile() {
                             placeholder="3"
                             value={field.value || 0}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                            className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                           />
                         </FormControl>
                         <FormMessage />
@@ -481,13 +481,13 @@ export default function Profile() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="calorieThreshold"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Seuil calories (%)</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -495,7 +495,7 @@ export default function Profile() {
                               placeholder="0"
                               value={field.value || 0}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />
@@ -508,7 +508,7 @@ export default function Profile() {
                       name="mealsPerDay"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                          <FormLabel className="text-gray-700 text-sm">Repas par jour</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
@@ -516,7 +516,7 @@ export default function Profile() {
                               placeholder="3"
                               value={field.value || 3}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
-                              className="glassmorphism border-2 border-white/30 rounded-xl"
+                              className="glassmorphism border-2 border-white/30 rounded-xl h-10"
                             />
                           </FormControl>
                           <FormMessage />

@@ -104,4 +104,28 @@
       margin: 0;
     }
   }
+
+  /* Gradient fade for content behind microphone */
+  .fade-for-mic {
+    position: relative;
+  }
+
+  .fade-for-mic::after {
+    content: '';
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(
+      to top,
+      hsla(142, 68%, 91%, 0.8) 0%,
+      hsla(226, 100%, 96%, 0.6) 30%,
+      hsla(330, 100%, 95%, 0.4) 60%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 30;
+    border-radius: 0 0 1.5rem 1.5rem;
+  }
 }

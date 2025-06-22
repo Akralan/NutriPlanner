@@ -111,7 +111,7 @@ export default function Lists() {
 
   if (isLoading) {
     return (
-      <div className="app-container">
+      <div className="app-container fade-for-mic">
         <div className="p-6 pb-24">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Mes listes de courses</h2>
           <div className="space-y-4">
@@ -140,7 +140,7 @@ export default function Lists() {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container fade-for-mic">
       <div className="p-6 pb-24">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {isMealsMode ? "Mes repas" : "Mes listes de courses"}

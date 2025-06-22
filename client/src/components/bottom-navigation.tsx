@@ -21,28 +21,30 @@ export default function BottomNavigation() {
       </div>
       
       <nav className="bottom-nav p-3">
-        <div className="flex justify-around items-center">
-          {navItems.map((item) => {
-            const isActive = location === item.path;
-            return (
-              <Link key={item.path} href={item.path}>
-                <button
-                  className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
-                    isActive 
-                      ? "bg-white/30 border border-white/40" 
-                      : "hover:bg-white/20"
-                  }`}
-                >
-                  <span className="text-sm drop-shadow-sm">{item.icon}</span>
-                  <span className={`text-xs font-medium drop-shadow-sm ${
-                    isActive ? "text-gray-800" : "text-gray-700"
-                  }`}>
-                    {item.label}
-                  </span>
-                </button>
-              </Link>
-            );
-          })}
+        <div className="flex justify-center items-center max-w-sm mx-auto">
+          <div className="flex justify-around items-center w-full">
+            {navItems.map((item) => {
+              const isActive = location === item.path;
+              return (
+                <Link key={item.path} href={item.path}>
+                  <button
+                    className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
+                      isActive 
+                        ? "bg-white/30 border border-white/40" 
+                        : "hover:bg-white/20"
+                    }`}
+                  >
+                    <span className="text-sm drop-shadow-sm">{item.icon}</span>
+                    <span className={`text-xs font-medium drop-shadow-sm ${
+                      isActive ? "text-gray-800" : "text-gray-700"
+                    }`}>
+                      {item.label}
+                    </span>
+                  </button>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </>
