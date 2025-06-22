@@ -1,289 +1,192 @@
 import { useState } from "react";
+import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BottomNavigation from "@/components/bottom-navigation";
-import FoodCategory from "@/components/food-category";
-import { foodCategories } from "@/lib/food-data";
-import type { Meal, FoodItem, GroceryList } from "@shared/schema";
+import type { GroceryList, Meal } from "@shared/schema";
 
 export default function MealPlanning() {
-  const params = useParams();
-  const listId = parseInt(params.id || "0");
-  const [isAddMealOpen, setIsAddMealOpen] = useState(false);
-  const [selectedIngredients, setSelectedIngredients] = useState<Array<{ foodItemId: number; quantity: number; unit: string; foodItem: FoodItem }>>([]);
+  const { id } = useParams<{ id: string }>();
+  const listId = id ? parseInt(id) : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [openMeals, setOpenMeals] = useState<{ [key: number]: boolean }>({});
 
-  const { data: groceryList } = useQuery<GroceryList>({
-    queryKey: [`/api/grocery-lists/${listId}`],
+  const { data: list } = useQuery<GroceryList>({
+    queryKey: ["/api/grocery-lists", listId],
+    enabled: !!listId,
   });
 
-  const { data: meals = [], isLoading } = useQuery<Meal[]>({
+  const { data: meals = [] } = useQuery<any[]>({
     queryKey: [`/api/grocery-lists/${listId}/meals`],
+    enabled: !!listId,
   });
 
-  const createMealMutation = useMutation({
-    mutationFn: async () => {
-      if (selectedIngredients.length < 4) {
-        throw new Error("Un repas doit contenir au moins 3 aliments + 1 source de protéine");
-      }
-
-      const hasProtein = selectedIngredients.some(ing => ing.foodItem.category === "proteins");
-      if (!hasProtein) {
-        throw new Error("Un repas doit contenir une source de protéine");
-      }
-
-      const mealName = `Repas #${meals.length + 1}`;
+  const toggleMealMutation = useMutation({
+    mutationFn: async ({ mealId, completed, meal }: { mealId: number; completed: boolean; meal: any }) => {
+      const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, { completed });
       
-      return apiRequest("POST", "/api/meals", {
-        listId,
-        name: mealName,
-        completed: false,
-        ingredients: selectedIngredients.map(ing => ({
-          foodItemId: ing.foodItemId,
-          quantity: ing.quantity,
-          unit: ing.unit,
-        })),
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Repas ajouté",
-        description: "Le nouveau repas a été ajouté à votre planification.",
-      });
-      setSelectedIngredients([]);
-      setIsAddMealOpen(false);
-      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateMealMutation = useMutation({
-    mutationFn: async ({ mealId, completed }: { mealId: number; completed: boolean }) => {
-      return apiRequest("PATCH", `/api/meals/${mealId}`, { completed });
+      // If meal is being marked as completed, update nutrition log
+      if (completed && meal) {
+        await apiRequest("POST", "/api/nutrition-logs", {
+          totalCalories: meal.calories,
+          totalProtein: meal.protein,
+          totalFat: meal.fat,
+          totalCarbs: meal.carbs,
+          targetCalories: 2200, // Default target
+          mealsCompleted: 1,
+        });
+      }
+      
+      return updatedMeal;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
       toast({
         title: "Repas mis à jour",
-        description: "Le statut du repas a été modifié.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le repas.",
-        variant: "destructive",
+        description: "Le statut du repas a été enregistré",
       });
     },
   });
 
-  const handleAddIngredient = (foodItem: FoodItem) => {
-    const existing = selectedIngredients.find(ing => ing.foodItemId === foodItem.id);
-    if (existing) {
-      setSelectedIngredients(prev => 
-        prev.map(ing => 
-          ing.foodItemId === foodItem.id 
-            ? { ...ing, quantity: ing.quantity + 1 }
-            : ing
-        )
-      );
-    } else {
-      setSelectedIngredients(prev => [...prev, {
-        foodItemId: foodItem.id,
-        quantity: 1,
-        unit: "portions",
-        foodItem,
-      }]);
-    }
+  const toggleMealOpen = (mealId: number) => {
+    setOpenMeals(prev => ({ ...prev, [mealId]: !prev[mealId] }));
   };
 
-  const handleRemoveIngredient = (foodItemId: number) => {
-    setSelectedIngredients(prev => prev.filter(ing => ing.foodItemId !== foodItemId));
+  const getIngredientEmojis = (ingredients: any[]) => {
+    if (!ingredients || ingredients.length === 0) return "🍽️";
+    return ingredients.slice(0, 3).map(ing => ing.foodItem?.emoji || "🥘").join("");
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "vegetables": return "bg-green-100 text-green-700";
-      case "fruits": return "bg-yellow-100 text-yellow-700";
-      case "proteins": return "bg-red-100 text-red-700";
-      case "starches": return "bg-blue-100 text-blue-700";
-      default: return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  if (isLoading) {
+  if (!list) {
     return (
-      <div className="app-container">
-        <div className="p-6 pb-24">
-          <div className="flex items-center justify-between mb-6">
-            <div className="w-48 h-8 bg-gray-300 rounded animate-pulse"></div>
-            <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
-          </div>
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="glassmorphism rounded-2xl p-4 shadow-lg animate-pulse">
-                <div className="w-32 h-6 bg-gray-300 rounded mb-3"></div>
-                <div className="flex flex-wrap gap-2">
-                  {[...Array(4)].map((_, j) => (
-                    <div key={j} className="w-20 h-6 bg-gray-300 rounded-full"></div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <BottomNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="app-container">
-      <div className="p-6 pb-24">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {groceryList?.name || "Planificateur de repas"}
-          </h2>
-          <Link href="/lists">
-            <button className="glassmorphism rounded-full p-2 hover:bg-white/30 transition-colors">
-              <span className="text-xl">←</span>
-            </button>
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
+      <div className="p-4 space-y-4">
+        {/* Header */}
+        <div className="text-center pt-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+            Mes repas
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
+            {list.name}
+          </p>
         </div>
-        
-        {/* Add New Meal Button */}
-        <Button
-          onClick={() => setIsAddMealOpen(true)}
-          className="w-full glassmorphism rounded-2xl p-4 shadow-lg hover:scale-105 transition-transform mb-6 border-0 bg-transparent text-gray-800 font-semibold text-lg hover:bg-white/30"
-        >
-          <div className="flex items-center justify-center space-x-3">
-            <span className="text-2xl">🍽️</span>
-            <span>Faire un nouveau repas</span>
-          </div>
-        </Button>
-        
-        {/* Planned Meals List */}
+
+        {/* Meals List */}
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Repas planifiés</h3>
-          
           {meals.length === 0 ? (
-            <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
-              <span className="text-4xl mb-4 block">🍽️</span>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Aucun repas planifié</h3>
-              <p className="text-gray-600">Commencez par ajouter votre premier repas.</p>
-            </div>
+            <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md">
+              <CardContent className="p-4 text-center">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  Aucun repas planifié
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             meals.map((meal) => (
-              <div key={meal.id} className="glassmorphism rounded-2xl p-4 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-gray-800">{meal.name}</h4>
-                  <input
-                    type="checkbox"
-                    checked={meal.completed}
-                    onChange={(e) => 
-                      updateMealMutation.mutate({ 
-                        mealId: meal.id, 
-                        completed: e.target.checked 
-                      })
-                    }
-                    className="w-5 h-5 text-green-500 rounded"
-                    disabled={updateMealMutation.isPending}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    {(meal.ingredients as any[]).map((ingredient, index) => (
-                      <span
-                        key={index}
-                        className={`text-xs px-2 py-1 rounded-full flex items-center ${getCategoryColor(ingredient.foodItem?.category || "")}`}
-                      >
-                        {ingredient.foodItem?.emoji} {ingredient.foodItem?.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <Collapsible 
+                key={meal.id} 
+                open={openMeals[meal.id]} 
+                onOpenChange={() => toggleMealOpen(meal.id)}
+              >
+                <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md overflow-hidden">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={meal.completed || false}
+                              onCheckedChange={(checked) => {
+                                toggleMealMutation.mutate({
+                                  mealId: meal.id,
+                                  completed: !!checked,
+                                  meal
+                                });
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span className="text-lg">
+                              {getIngredientEmojis(meal.ingredients)}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                              {meal.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {meal.calories} cal • {meal.protein}g protéines
+                            </p>
+                          </div>
+                        </div>
+                        {openMeals[meal.id] ? (
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        )}
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <CardContent className="p-4 pt-0 border-t border-gray-100 dark:border-gray-700">
+                      {/* Macros */}
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500">Protéines</p>
+                          <p className="font-semibold text-blue-600 text-sm">{meal.protein}g</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500">Lipides</p>
+                          <p className="font-semibold text-green-600 text-sm">{meal.fat}g</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500">Glucides</p>
+                          <p className="font-semibold text-orange-600 text-sm">{meal.carbs}g</p>
+                        </div>
+                      </div>
+                      
+                      {/* Ingredients */}
+                      {meal.ingredients && meal.ingredients.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Ingrédients:
+                          </h4>
+                          <div className="space-y-1">
+                            {meal.ingredients.map((ingredient: any, index: number) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <span className="text-sm">{ingredient.foodItem?.emoji}</span>
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  {ingredient.foodItem?.name} ({ingredient.quantity} {ingredient.unit})
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             ))
           )}
         </div>
       </div>
 
       <BottomNavigation />
-
-      {/* Add Meal Dialog */}
-      <Dialog open={isAddMealOpen} onOpenChange={setIsAddMealOpen}>
-        <DialogContent className="glassmorphism rounded-3xl border-0 shadow-xl max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">
-              Créer un nouveau repas
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Selected Ingredients */}
-            {selectedIngredients.length > 0 && (
-              <div className="glassmorphism rounded-xl p-4 border-2 border-white/30 bg-white/40">
-                <h4 className="font-bold text-gray-800 mb-3">Ingrédients sélectionnés</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedIngredients.map((ingredient) => (
-                    <div
-                      key={ingredient.foodItemId}
-                      className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getCategoryColor(ingredient.foodItem.category)}`}
-                    >
-                      {ingredient.foodItem.emoji} {ingredient.foodItem.name}
-                      <button
-                        onClick={() => handleRemoveIngredient(ingredient.foodItemId)}
-                        className="ml-1 text-xs hover:text-red-600 font-bold"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-700 font-medium mt-2">
-                  {selectedIngredients.length}/4+ ingrédients 
-                  {!selectedIngredients.some(ing => ing.foodItem.category === "proteins") && 
-                    " (manque une protéine)"}
-                </p>
-              </div>
-            )}
-
-            {/* Food Categories */}
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {foodCategories.map((category) => (
-                <FoodCategory
-                  key={category.id}
-                  category={category}
-                  selectedSeason="all"
-                  onItemClick={handleAddIngredient}
-                />
-              ))}
-            </div>
-
-            {/* Create Meal Button */}
-            <Button
-              onClick={() => createMealMutation.mutate()}
-              disabled={createMealMutation.isPending || selectedIngredients.length < 4 || !selectedIngredients.some(ing => ing.foodItem.category === "proteins")}
-              className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all disabled:opacity-50 bg-white/20"
-            >
-              {createMealMutation.isPending ? "Création..." : "Créer le repas"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

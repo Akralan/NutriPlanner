@@ -286,9 +286,17 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     if (existingLog) {
+      // Update existing log by adding values (for cumulative tracking)
       const [updatedLog] = await db
         .update(nutritionLogs)
-        .set(updates)
+        .set({
+          totalCalories: (existingLog.totalCalories || 0) + (updates.totalCalories || 0),
+          totalProtein: (existingLog.totalProtein || 0) + (updates.totalProtein || 0),
+          totalFat: (existingLog.totalFat || 0) + (updates.totalFat || 0),
+          totalCarbs: (existingLog.totalCarbs || 0) + (updates.totalCarbs || 0),
+          mealsCompleted: (existingLog.mealsCompleted || 0) + (updates.mealsCompleted || 0),
+          targetCalories: updates.targetCalories || existingLog.targetCalories,
+        })
         .where(eq(nutritionLogs.id, existingLog.id))
         .returning();
       return updatedLog;
