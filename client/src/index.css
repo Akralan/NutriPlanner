@@ -86,4 +86,22 @@
     background: hsla(0, 0%, 100%, 0.1);
     backdrop-filter: blur(40px);
   }
+
+  /* Bottom navigation responsive styling */
+  .bottom-nav {
+    @apply fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md glassmorphism rounded-t-3xl shadow-lg border-t border-white/20 z-50;
+    /* Desktop: limit width to 400px max */
+    max-width: min(100vw, 400px);
+    /* Mobile: full width with padding */
+    width: calc(100% - 2rem);
+    margin: 0 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .bottom-nav {
+      /* Desktop: centered with max width */
+      width: 400px;
+      margin: 0;
+    }
+  }
 }

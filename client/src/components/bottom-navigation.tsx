@@ -11,14 +11,14 @@ export default function BottomNavigation() {
   const [location] = useLocation();
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 glassmorphism p-2 shadow-lg border-t border-white/20">
+    <nav className="bottom-nav p-3">
       <div className="flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = location === item.path;
           return (
             <Link key={item.path} href={item.path}>
               <button
-                className={`flex flex-col items-center space-y-1 p-1 rounded-lg transition-all duration-200 ${
+                className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 ${
                   isActive 
                     ? "bg-white/30 border border-white/40" 
                     : "hover:bg-white/20"
