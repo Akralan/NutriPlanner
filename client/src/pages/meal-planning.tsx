@@ -37,15 +37,15 @@ export default function MealPlanning() {
       
       const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, updateData);
       
-      // If meal is being marked as completed, update nutrition log
-      if (completed && meal) {
+      // Update nutrition log to recalculate totals
+      if (meal) {
         await apiRequest("POST", "/api/nutrition-logs", {
-          totalCalories: meal.calories,
-          totalProtein: meal.protein,
-          totalFat: meal.fat,
-          totalCarbs: meal.carbs,
-          targetCalories: 2200, // Default target
-          mealsCompleted: 1,
+          totalCalories: 0, // Server will recalculate based on actual completed meals
+          totalProtein: 0,
+          totalFat: 0,
+          totalCarbs: 0,
+          targetCalories: 2200,
+          mealsCompleted: 0,
         });
       }
       

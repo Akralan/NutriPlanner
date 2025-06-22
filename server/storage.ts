@@ -20,7 +20,7 @@ import {
   type InsertNutritionLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -333,41 +333,73 @@ export class DatabaseStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Calculate actual totals from completed meals today
+    const completedMealsToday = await db
+      .select()
+      .from(meals)
+      .innerJoin(groceryLists, eq(meals.listId, groceryLists.id))
+      .where(
+        and(
+          eq(groceryLists.userId, userId),
+          eq(meals.completed, true),
+          gte(meals.completedAt, today)
+        )
+      );
+    
+    const actualTotals = completedMealsToday.reduce((acc, { meals: meal }) => ({
+      totalCalories: acc.totalCalories + (meal.calories || 0),
+      totalProtein: acc.totalProtein + (meal.protein || 0),
+      totalFat: acc.totalFat + (meal.fat || 0),
+      totalCarbs: acc.totalCarbs + (meal.carbs || 0),
+      mealsCompleted: acc.mealsCompleted + 1,
+    }), {
+      totalCalories: 0,
+      totalProtein: 0,
+      totalFat: 0,
+      totalCarbs: 0,
+      mealsCompleted: 0,
+    });
+    
     // Try to find existing log for today
     const [existingLog] = await db
       .select()
       .from(nutritionLogs)
-      .where(eq(nutritionLogs.userId, userId))
+      .where(
+        and(
+          eq(nutritionLogs.userId, userId),
+          eq(nutritionLogs.date, today)
+        )
+      )
       .limit(1);
     
     if (existingLog) {
-      // Update existing log by adding values (for cumulative tracking)
+      // Update with actual calculated totals
       const [updatedLog] = await db
         .update(nutritionLogs)
         .set({
-          totalCalories: (existingLog.totalCalories || 0) + (updates.totalCalories || 0),
-          totalProtein: (existingLog.totalProtein || 0) + (updates.totalProtein || 0),
-          totalFat: (existingLog.totalFat || 0) + (updates.totalFat || 0),
-          totalCarbs: (existingLog.totalCarbs || 0) + (updates.totalCarbs || 0),
-          mealsCompleted: (existingLog.mealsCompleted || 0) + (updates.mealsCompleted || 0),
+          totalCalories: actualTotals.totalCalories,
+          totalProtein: actualTotals.totalProtein,
+          totalFat: actualTotals.totalFat,
+          totalCarbs: actualTotals.totalCarbs,
+          mealsCompleted: actualTotals.mealsCompleted,
           targetCalories: updates.targetCalories || existingLog.targetCalories,
         })
         .where(eq(nutritionLogs.id, existingLog.id))
         .returning();
       return updatedLog;
     } else {
-      // Create new log for today
+      // Create new log for today with actual totals
       const [newLog] = await db
         .insert(nutritionLogs)
         .values({
           userId,
           date: today,
-          totalCalories: updates.totalCalories || 0,
-          totalProtein: updates.totalProtein || 0,
-          totalFat: updates.totalFat || 0,
-          totalCarbs: updates.totalCarbs || 0,
+          totalCalories: actualTotals.totalCalories,
+          totalProtein: actualTotals.totalProtein,
+          totalFat: actualTotals.totalFat,
+          totalCarbs: actualTotals.totalCarbs,
           targetCalories: updates.targetCalories || 2000,
-          mealsCompleted: updates.mealsCompleted || 0,
+          mealsCompleted: actualTotals.mealsCompleted,
         })
         .returning();
       return newLog;
