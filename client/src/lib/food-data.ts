@@ -1,25 +1,9 @@
-export const foodCategories = [
-  {
-    id: "vegetables",
-    name: "Légumes",
-    emoji: "🥬",
-  },
-  {
-    id: "fruits", 
-    name: "Fruits",
-    emoji: "🍎",
-  },
-  {
-    id: "proteins",
-    name: "Protéines",
-    emoji: "🥩",
-  },
-  {
-    id: "starches",
-    name: "Féculents", 
-    emoji: "🌾",
-  },
-];
+import { convertCSVToAppFormat } from './csv-parser';
+
+// Get data from CSV
+const csvData = convertCSVToAppFormat();
+
+export const foodCategories = csvData.categories;
 
 export const seasons = [
   { id: "all", name: "Toutes saisons", emoji: "🌱" },
