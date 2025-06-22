@@ -72,7 +72,7 @@ export function useUpdateProfile() {
 }
 
 // Helper function to calculate daily caloric needs
-export function calculateDailyCalories(weight: number, height: number, weeklyWorkouts: number): number {
+export function calculateDailyCalories(weight: number, height: number, weeklyWorkouts: number, calorieThreshold: number = 0): number {
   // Base Metabolic Rate calculation using Mifflin-St Jeor equation (for men, simplified)
   // BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age + 5
   // Since we don't have age, we'll use a simplified version with activity level
@@ -89,9 +89,26 @@ export function calculateDailyCalories(weight: number, height: number, weeklyWor
     activityMultiplier = 1.725; // Very active
   }
   
-  return Math.round(baseBMR * activityMultiplier);
+  const maintenanceCalories = baseBMR * activityMultiplier;
+  const adjustedCalories = maintenanceCalories * (1 + calorieThreshold / 100);
+  
+  return Math.round(adjustedCalories);
 }
 
-export function calculateCaloriesPerMeal(totalCalories: number): number {
-  return Math.round(totalCalories / 3);
+export function calculateCaloriesPerMeal(totalCalories: number, mealsPerDay: number = 3): number {
+  return Math.round(totalCalories / mealsPerDay);
+}
+
+export function calculateMacros(calories: number) {
+  // Standard macro distribution for athletes
+  const proteinCalories = calories * 0.30; // 30% protein
+  const fatCalories = calories * 0.25; // 25% fat
+  const carbCalories = calories * 0.45; // 45% carbs
+  
+  return {
+    protein: Math.round(proteinCalories / 4), // 4 cal per gram
+    fat: Math.round(fatCalories / 9), // 9 cal per gram
+    carbs: Math.round(carbCalories / 4), // 4 cal per gram
+    calories
+  };
 }

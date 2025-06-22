@@ -1,4 +1,4 @@
-import { useAuth, useUpdateProfile, useLogout, calculateDailyCalories, calculateCaloriesPerMeal } from "@/hooks/useAuth";
+import { useAuth, useUpdateProfile, useLogout, calculateDailyCalories, calculateCaloriesPerMeal, calculateMacros } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,8 @@ export default function Profile() {
       height: user?.height || undefined,
       weight: user?.weight || undefined,
       weeklyWorkouts: user?.weeklyWorkouts || 0,
+      calorieThreshold: user?.calorieThreshold || 0,
+      mealsPerDay: user?.mealsPerDay || 3,
     },
   });
 
@@ -34,6 +36,8 @@ export default function Profile() {
       height: user.height || undefined,
       weight: user.weight || undefined,
       weeklyWorkouts: user.weeklyWorkouts || 0,
+      calorieThreshold: user.calorieThreshold || 0,
+      mealsPerDay: user.mealsPerDay || 3,
     });
   }
 
@@ -59,10 +63,11 @@ export default function Profile() {
 
   // Calculate calories if we have weight, height, and weekly workouts
   const dailyCalories = user?.weight && user?.height 
-    ? calculateDailyCalories(user.weight, user.height, user.weeklyWorkouts || 0)
+    ? calculateDailyCalories(user.weight, user.height, user.weeklyWorkouts || 0, user.calorieThreshold || 0)
     : null;
   
-  const caloriesPerMeal = dailyCalories ? calculateCaloriesPerMeal(dailyCalories) : null;
+  const caloriesPerMeal = dailyCalories ? calculateCaloriesPerMeal(dailyCalories, user?.mealsPerDay || 3) : null;
+  const macros = caloriesPerMeal ? calculateMacros(caloriesPerMeal) : null;
 
   if (isLoading) {
     return (
@@ -109,21 +114,76 @@ export default function Profile() {
         </div>
 
         {/* Calorie Information */}
-        {caloriesPerMeal && (
+        {caloriesPerMeal && macros && (
           <div className="glassmorphism rounded-2xl p-6 shadow-lg mb-6 border-2 border-white/30">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Vos besoins caloriques</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{dailyCalories}</div>
-                <div className="text-sm text-gray-600">kcal / jour</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{caloriesPerMeal}</div>
-                <div className="text-sm text-gray-600">kcal / repas</div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Objectifs nutritionnels par repas</h3>
+            
+            {/* Calories */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">Calories</span>
+                <span className="text-sm font-bold text-gray-800">{caloriesPerMeal} kcal</span>
               </div>
             </div>
+
+            {/* Macronutrients with Progress Bars */}
+            <div className="space-y-3">
+              {/* Protéines */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-blue-700">Protéines</span>
+                  <span className="text-sm font-bold text-blue-800">{macros.protein}g</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (macros.protein / (macros.protein * 1.2)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Lipides */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-yellow-700">Lipides</span>
+                  <span className="text-sm font-bold text-yellow-800">{macros.fat}g</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (macros.fat / (macros.fat * 1.2)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Glucides */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-green-700">Glucides</span>
+                  <span className="text-sm font-bold text-green-800">{macros.carbs}g</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (macros.carbs / (macros.carbs * 1.2)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/20">
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">{dailyCalories}</div>
+                <div className="text-xs text-gray-600">kcal / jour</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">{user?.mealsPerDay || 3}</div>
+                <div className="text-xs text-gray-600">repas / jour</div>
+              </div>
+            </div>
+            
             <p className="text-xs text-gray-500 mt-3 text-center">
-              Basé sur votre poids, taille et activité physique
+              Seuil calories: {user?.calorieThreshold || 0}% • 30% prot., 25% lip., 45% gluc.
             </p>
           </div>
         )}
@@ -235,6 +295,53 @@ export default function Profile() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="calorieThreshold"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Seuil calories (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="0"
+                          min="-20"
+                          max="20"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-gray-500 mt-1">-20% (sèche) à +20% (prise de masse)</p>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mealsPerDay"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Repas par jour</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="3"
+                          min="1"
+                          max="6"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 3)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <Button
                 type="submit"

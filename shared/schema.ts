@@ -13,6 +13,8 @@ export const users = pgTable("users", {
   height: real("height"), // in cm
   weight: real("weight"), // in kg
   weeklyWorkouts: integer("weekly_workouts").default(0),
+  calorieThreshold: integer("calorie_threshold").default(0), // percentage between -20 and +20
+  mealsPerDay: integer("meals_per_day").default(3),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -121,6 +123,8 @@ export const updateProfileSchema = createInsertSchema(users).omit({
   height: z.number().min(100).max(250).optional(),
   weight: z.number().min(30).max(300).optional(),
   weeklyWorkouts: z.number().min(0).max(20).optional(),
+  calorieThreshold: z.number().min(-20).max(20).optional(),
+  mealsPerDay: z.number().min(1).max(6).optional(),
 });
 
 export const insertGroceryListSchema = createInsertSchema(groceryLists).omit({
