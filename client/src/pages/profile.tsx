@@ -51,10 +51,10 @@ export default function Profile() {
         title: "Profil mis à jour",
         description: "Vos informations ont été sauvegardées avec succès.",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la mise à jour",
+        description: "Impossible de mettre à jour le profil. Veuillez réessayer.",
         variant: "destructive",
       });
     }
@@ -103,7 +103,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container lg:max-w-6xl">
       <div className="p-6 pb-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
@@ -116,249 +116,252 @@ export default function Profile() {
           </Button>
         </div>
 
-        {/* Calorie Information */}
-        {caloriesPerMeal && macros && (
-          <div className="glassmorphism rounded-2xl p-6 shadow-lg mb-6 border-2 border-white/30">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Objectifs nutritionnels par repas</h3>
+        {/* Desktop responsive layout */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+          {/* Calorie Information */}
+          {caloriesPerMeal && macros && (
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Objectifs nutritionnels par repas</h3>
+              
+              {/* Calories */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Calories</span>
+                  <span className="text-sm font-bold text-gray-800">{caloriesPerMeal} kcal</span>
+                </div>
+              </div>
+
+              {/* Macronutrients with Progress Bars */}
+              <div className="space-y-3">
+                {/* Protéines */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-blue-700">Protéines</span>
+                    <span className="text-sm font-bold text-blue-800">{macros.protein}g</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (macros.protein / (macros.protein * 1.2)) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Lipides */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-yellow-700">Lipides</span>
+                    <span className="text-sm font-bold text-yellow-800">{macros.fat}g</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (macros.fat / (macros.fat * 1.2)) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Glucides */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-green-700">Glucides</span>
+                    <span className="text-sm font-bold text-green-800">{macros.carbs}g</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (macros.carbs / (macros.carbs * 1.2)) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/20">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-600">{dailyCalories}</div>
+                  <div className="text-xs text-gray-600">kcal / jour</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-600">{user?.mealsPerDay || 3}</div>
+                  <div className="text-xs text-gray-600">repas / jour</div>
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                Seuil calories: {user?.calorieThreshold || 0}% • 30% prot., 25% lip., 45% gluc.
+              </p>
+            </div>
+          )}
+
+          {/* Profile Form */}
+          <div className="glassmorphism rounded-2xl p-6 shadow-lg">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
             
-            {/* Calories */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Calories</span>
-                <span className="text-sm font-bold text-gray-800">{caloriesPerMeal} kcal</span>
-              </div>
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Prénom</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Jean"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-            {/* Macronutrients with Progress Bars */}
-            <div className="space-y-3">
-              {/* Protéines */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-blue-700">Protéines</span>
-                  <span className="text-sm font-bold text-blue-800">{macros.protein}g</span>
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Nom</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Dupont"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (macros.protein / (macros.protein * 1.2)) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
 
-              {/* Lipides */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-yellow-700">Lipides</span>
-                  <span className="text-sm font-bold text-yellow-800">{macros.fat}g</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (macros.fat / (macros.fat * 1.2)) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="height"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Taille (cm)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder="175"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Glucides */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-green-700">Glucides</span>
-                  <span className="text-sm font-bold text-green-800">{macros.carbs}g</span>
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Poids (kg)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder="70"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (macros.carbs / (macros.carbs * 1.2)) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/20">
-              <div className="text-center">
-                <div className="text-lg font-bold text-green-600">{dailyCalories}</div>
-                <div className="text-xs text-gray-600">kcal / jour</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-600">{user?.mealsPerDay || 3}</div>
-                <div className="text-xs text-gray-600">repas / jour</div>
-              </div>
-            </div>
-            
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Seuil calories: {user?.calorieThreshold || 0}% • 30% prot., 25% lip., 45% gluc.
-            </p>
-          </div>
-        )}
-
-        {/* Profile Form */}
-        <div className="glassmorphism rounded-2xl p-6 shadow-lg">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Prénom</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Jean"
-                          className="glassmorphism border-2 border-white/30 text-gray-800"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="weeklyWorkouts"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Nom</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Dupont"
-                          className="glassmorphism border-2 border-white/30 text-gray-800"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="height"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Taille (cm)</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">Séances de sport par semaine</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="number"
-                          placeholder="175"
-                          className="glassmorphism border-2 border-white/30 text-gray-800"
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Poids (kg)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="70"
-                          className="glassmorphism border-2 border-white/30 text-gray-800"
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="weeklyWorkouts"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">Séances de sport par semaine</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder="3"
-                        min="0"
-                        max="20"
-                        className="glassmorphism border-2 border-white/30 text-gray-800"
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="calorieThreshold"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Seuil calories (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="0"
-                          min="-20"
+                          placeholder="3"
+                          min="0"
                           max="20"
                           className="glassmorphism border-2 border-white/30 text-gray-800"
                           onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                         />
                       </FormControl>
                       <FormMessage />
-                      <p className="text-xs text-gray-500 mt-1">-20% (sèche) à +20% (prise de masse)</p>
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="mealsPerDay"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">Repas par jour</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="3"
-                          min="1"
-                          max="6"
-                          className="glassmorphism border-2 border-white/30 text-gray-800"
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 3)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="calorieThreshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Seuil calories (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder="0"
+                            min="-20"
+                            max="20"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-xs text-gray-500 mt-1">-20% (sèche) à +20% (prise de masse)</p>
+                      </FormItem>
+                    )}
+                  />
 
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-                className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all bg-white/20"
-              >
-                {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
-              </Button>
-            </form>
-          </Form>
+                  <FormField
+                    control={form.control}
+                    name="mealsPerDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 font-medium">Repas par jour</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder="3"
+                            min="1"
+                            max="6"
+                            className="glassmorphism border-2 border-white/30 text-gray-800"
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 3)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={updateProfileMutation.isPending}
+                  className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all bg-white/20"
+                >
+                  {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                </Button>
+              </form>
+            </Form>
+          </div>
         </div>
 
-        {/* User Info */}
-        <div className="glassmorphism rounded-2xl p-6 shadow-lg mt-6">
+        {/* User Info - Below the nutritional goals on desktop */}
+        <div className="glassmorphism rounded-2xl p-6 shadow-lg mt-6 lg:max-w-md">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
           <div className="space-y-2">
             <div className="flex justify-between">

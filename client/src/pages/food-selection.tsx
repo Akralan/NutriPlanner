@@ -247,7 +247,7 @@ export default function FoodSelection() {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container lg:max-w-6xl">
       {/* Header */}
       <header className="glassmorphism rounded-b-3xl p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
@@ -321,15 +321,18 @@ export default function FoodSelection() {
             </div>
           )}
 
-          {foodCategories.map((category) => (
-            <FoodCategory
-              key={category.id}
-              category={category}
-              selectedSeason={selectedSeason}
-              onItemClick={handleFoodItemClick}
-              getMealInfo={getFoodItemMealInfo}
-            />
-          ))}
+          {/* Desktop responsive grid for food categories */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {foodCategories.map((category) => (
+              <FoodCategory
+                key={category.id}
+                category={category}
+                selectedSeason={selectedSeason}
+                onItemClick={handleFoodItemClick}
+                getMealInfo={getFoodItemMealInfo}
+              />
+            ))}
+          </div>
         </div>
       </main>
 
