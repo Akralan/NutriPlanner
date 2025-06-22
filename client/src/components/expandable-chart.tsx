@@ -193,7 +193,7 @@ export default function ExpandableChart({ calorieData, weightData = [], isDeskto
             return (
               <div key={index} className="flex-1 flex flex-col items-center min-w-0">
                 <div className="text-xs text-gray-600 mb-1">
-                  {day.weight}kg
+                  {day.weight.toFixed(2)}kg
                 </div>
                 <div 
                   className="w-full rounded-t-lg bg-gradient-to-t from-green-400 to-emerald-400 transition-all duration-300"
@@ -304,12 +304,17 @@ export default function ExpandableChart({ calorieData, weightData = [], isDeskto
 
               {/* Weight Chart Toggle */}
               {weightData.length > 0 && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center">
                   <Button
-                    variant="outline"
+                    variant={showWeightChart ? "default" : "outline"}
                     onClick={() => setShowWeightChart(!showWeightChart)}
-                    className="glassmorphism border-2 border-white/30 hover:bg-white/40 text-gray-700"
+                    className={`glassmorphism border-2 border-white/30 ${
+                      showWeightChart 
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600" 
+                        : "hover:bg-white/40 text-gray-700"
+                    }`}
                   >
+                    <TrendingUp className="h-4 w-4 mr-2" />
                     {showWeightChart ? "Masquer" : "Afficher"} l'évolution du poids
                   </Button>
                 </div>
