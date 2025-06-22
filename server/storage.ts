@@ -104,40 +104,90 @@ export class DatabaseStorage implements IStorage {
     return isValid ? user : null;
   }
 
-  // Initialize food items in database
+  // Initialize food items in database using CSV data
   async initializeFoodItems() {
     const existingItems = await db.select().from(foodItems);
     if (existingItems.length > 0) return; // Already initialized
 
-    const initialFoodItems: InsertFoodItem[] = [
-      // Vegetables
-      { name: "Carottes", emoji: "🥕", category: "vegetables", season: "autumn", nutrition: { calories: 41, carbs: 9.6, protein: 0.9, fat: 0.2, vitaminA: 835 } },
-      { name: "Brocolis", emoji: "🥦", category: "vegetables", season: "winter", nutrition: { calories: 34, carbs: 7, protein: 2.8, fat: 0.4, vitaminC: 89 } },
-      { name: "Tomates", emoji: "🍅", category: "vegetables", season: "summer", nutrition: { calories: 18, carbs: 3.9, protein: 0.9, fat: 0.2, vitaminC: 14 } },
-      { name: "Épinards", emoji: "🥬", category: "vegetables", season: "spring", nutrition: { calories: 23, carbs: 3.6, protein: 2.9, fat: 0.4, iron: 2.7 } },
-      { name: "Courgettes", emoji: "🥒", category: "vegetables", season: "summer", nutrition: { calories: 17, carbs: 3.1, protein: 1.2, fat: 0.3, vitaminC: 17 } },
-      { name: "Poivrons", emoji: "🫑", category: "vegetables", season: "summer", nutrition: { calories: 31, carbs: 7, protein: 1, fat: 0.3, vitaminC: 190 } },
+    // Read and parse CSV file directly
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const csvPath = path.join(process.cwd(), 'aliments_sains_unifie.csv');
+    const csvContent = fs.readFileSync(csvPath, 'utf-8');
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    
+    // Skip header line
+    const dataLines = lines.slice(1);
+    
+    const foodItemsToInsert: InsertFoodItem[] = [];
+    
+    for (const line of dataLines) {
+      if (!line.trim()) continue;
       
-      // Fruits
-      { name: "Bananes", emoji: "🍌", category: "fruits", season: "all", nutrition: { calories: 89, carbs: 23, protein: 1.1, fat: 0.3, potassium: 358 } },
-      { name: "Fraises", emoji: "🍓", category: "fruits", season: "spring", nutrition: { calories: 32, carbs: 7.7, protein: 0.7, fat: 0.3, vitaminC: 59 } },
-      { name: "Pommes", emoji: "🍎", category: "fruits", season: "autumn", nutrition: { calories: 52, carbs: 14, protein: 0.3, fat: 0.2, fiber: 2.4 } },
-      { name: "Oranges", emoji: "🍊", category: "fruits", season: "winter", nutrition: { calories: 47, carbs: 12, protein: 0.9, fat: 0.1, vitaminC: 53 } },
+      const columns = line.split(',');
+      if (columns.length < 10) continue;
       
-      // Proteins
-      { name: "Saumon", emoji: "🐟", category: "proteins", season: "all", nutrition: { calories: 208, carbs: 0, protein: 20, fat: 13, omega3: 2.3 } },
-      { name: "Œufs", emoji: "🥚", category: "proteins", season: "all", nutrition: { calories: 155, carbs: 1.1, protein: 13, fat: 11, vitaminB12: 0.9 } },
-      { name: "Poulet", emoji: "🐔", category: "proteins", season: "all", nutrition: { calories: 165, carbs: 0, protein: 31, fat: 3.6, niacin: 8.5 } },
-      { name: "Bœuf", emoji: "🥩", category: "proteins", season: "all", nutrition: { calories: 250, carbs: 0, protein: 26, fat: 15, iron: 2.6 } },
+      const name = columns[0];
+      const category = this.normalizeCategoryName(columns[1]);
+      const emoji = columns[3];
+      const protein = parseFloat(columns[4]) || 0;
+      const carbs = parseFloat(columns[5]) || 0;
+      const fat = parseFloat(columns[6]) || 0;
+      const calories = parseFloat(columns[7]) || 0;
+      const season = this.normalizeSeasonName(columns[9]);
       
-      // Starches
-      { name: "Riz", emoji: "🍚", category: "starches", season: "all", nutrition: { calories: 130, carbs: 28, protein: 2.7, fat: 0.3, fiber: 0.4 } },
-      { name: "Pommes de terre", emoji: "🥔", category: "starches", season: "autumn", nutrition: { calories: 77, carbs: 17, protein: 2, fat: 0.1, vitaminC: 20 } },
-      { name: "Pâtes", emoji: "🍝", category: "starches", season: "all", nutrition: { calories: 131, carbs: 25, protein: 5, fat: 1.1, fiber: 1.8 } },
-      { name: "Quinoa", emoji: "🌾", category: "starches", season: "all", nutrition: { calories: 120, carbs: 22, protein: 4.4, fat: 1.9, fiber: 2.8 } },
-    ];
+      foodItemsToInsert.push({
+        name,
+        emoji,
+        category,
+        season,
+        nutrition: {
+          calories,
+          protein,
+          carbs,
+          fat
+        }
+      });
+    }
 
-    await db.insert(foodItems).values(initialFoodItems);
+    await db.insert(foodItems).values(foodItemsToInsert);
+    console.log(`Initialized ${foodItemsToInsert.length} food items from CSV data`);
+  }
+
+  private normalizeCategoryName(category: string): string {
+    return category
+      .toLowerCase()
+      .replace(/[éèê]/g, 'e')
+      .replace(/[àâ]/g, 'a')
+      .replace(/[ç]/g, 'c')
+      .replace(/[,\s]+/g, '-')
+      .replace(/[^\w-]/g, '');
+  }
+
+  private normalizeSeasonName(season: string): string {
+    const seasonMap: { [key: string]: string } = {
+      'autumn': 'autumn',
+      'automne': 'autumn',
+      'winter': 'winter',
+      'hiver': 'winter',
+      'spring': 'spring',
+      'printemps': 'spring',
+      'summer': 'summer',
+      'été': 'summer',
+      'ete': 'summer',
+      'toute-saisons': 'all',
+      'toute': 'all',
+      'all': 'all'
+    };
+    
+    // Handle compound seasons
+    if (season.includes('-')) {
+      const parts = season.split('-');
+      return parts.map(part => seasonMap[part.trim()] || part.trim()).join(',');
+    }
+    
+    return seasonMap[season.toLowerCase()] || 'all';
   }
 
   // Grocery Lists

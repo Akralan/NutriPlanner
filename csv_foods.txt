@@ -1,0 +1,109 @@
+Ail (clove),"Épices
+Amandes,Noix et graines
+Ananas,Fruits
+Aubergine,Légumes
+Avoine,Céréales et pseudo-céréales
+Banane,Fruits
+Barre de céréales complètes,Snacks et encas sains
+Barre de noix et graines,Snacks et encas sains
+Basilic (frais),"Épices
+Beurre d'amande,Huiles et graisses saines
+Beurre de cacahuète,Huiles et graisses saines
+Bœuf maigre,Protéines animales et alternatives
+Boules d'énergie (datte-noix),Snacks et encas sains
+Boulettes de pois chiches,Snacks et encas sains
+Boulgour,Céréales et pseudo-céréales
+Brocoli,Légumes
+Cabillaud,Protéines animales et alternatives
+Café noir (infus),Boissons sans sucre ajouté
+Carotte,Légumes
+Chips de kale,Snacks et encas sains
+Chou-fleur,Légumes
+Concombre,Légumes
+Cornichons fermentés,Produits fermentés
+Courgette,Légumes
+Crackers de légumes,Snacks et encas sains
+Curcuma (tsp),"Épices
+Dinde (filet),Protéines animales et alternatives
+Eau minérale,Boissons sans sucre ajouté
+Eau pétillante,Boissons sans sucre ajouté
+Épinard,Légumes
+Farine complète de blé,Pains et farines
+Farine complète d'épeautre,Pains et farines
+Farine complète de seigle,Pains et farines
+Fèves,Légumineuses
+Fraise,Fruits
+Fromage blanc 0%,Produits laitiers et substituts
+Gingembre (knob),"Épices
+Graines de chia,Noix et graines
+Graines de courge,Noix et graines
+Graines de lin,Noix et graines
+Graines de tournesol,Noix et graines
+Haricots blancs,Légumineuses
+Haricots noirs,Légumineuses
+Haricots rouges,Légumineuses
+Huile de colza vierge,Huiles et graisses saines
+Huile de lin,Huiles et graisses saines
+Huile de noix,Huiles et graisses saines
+Huile d'olive vierge,Huiles et graisses saines
+Infusion de camomille,Boissons sans sucre ajouté
+Kéfir,Produits fermentés
+Kimchi,Produits fermentés
+Kiwi,Fruits
+Kombucha,Produits fermentés
+Lait d'amande,Produits laitiers et substituts
+Lait d'avoine,Produits laitiers et substituts
+Lait demi-écrémé,Produits laitiers et substituts
+Lait de soja,Produits laitiers et substituts
+Lait écrémé,Produits laitiers et substituts
+Laitue,Légumes
+Lentilles,Légumineuses
+Levure nutritionnelle,Suppléments et compléments
+Lupin,Légumineuses
+Mangue,Fruits
+Millet,Céréales et pseudo-céréales
+Moutarde (càs),"Épices
+Noisettes,Noix et graines
+Noix de cajou,Noix et graines
+Noix,Noix et graines
+Œuf,Protéines animales et alternatives
+Oignon (unité),"Épices
+Orange,Fruits
+Pain complet,Pains et farines
+Pain de seigle,Pains et farines
+Pain multicéréales,Pains et farines
+Paprika (tsp),"Épices
+Pâtes complètes,Céréales et pseudo-céréales
+Pêche,Fruits
+Persil (frais),"Épices
+Poire,Fruits
+Pois cassés,Légumineuses
+Pois chiches,Légumineuses
+Pois verts,Légumineuses
+Poitrine de poulet,Protéines animales et alternatives
+Poivre noir (tsp),"Épices
+Poivron,Légumes
+Pomme,Fruits
+Poudre de baobab,Suppléments et compléments
+Poudre de maca,Suppléments et compléments
+Protéine de pois (poudre),Suppléments et compléments
+Protéine de riz (poudre),Suppléments et compléments
+Protéine végétale texturée,Protéines animales et alternatives
+Quinoa,Céréales et pseudo-céréales
+Raisin,Fruits
+Riz complet,Céréales et pseudo-céréales
+Romarin (sec),"Épices
+Sarrasin,Céréales et pseudo-céréales
+Sauerkraut (choucroute),Produits fermentés
+Saumon,Protéines animales et alternatives
+Soja (edamame),Légumineuses
+Spiruline (poudre),Suppléments et compléments
+Tempeh,Protéines animales et alternatives
+Thé noir (infusé),Boissons sans sucre ajouté
+Thé vert (infusé),Boissons sans sucre ajouté
+Thym (sec),"Épices
+Tofu ferme,Protéines animales et alternatives
+Tomate,Légumes
+Vinaigre balsamique (càs),"Épices
+Yaourt nature,Produits laitiers et substituts
+Yaourt végétal (soja),Produits laitiers et substituts
