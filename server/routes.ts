@@ -130,6 +130,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/grocery-lists/:id", async (req, res) => {
     try {
+      const listId = parseInt(req.params.id);
+      const list = await storage.getGroceryList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ message: "Grocery list not found" });
+      }
+      
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch grocery list" });
+    }
+  });
+
+  app.get("/api/grocery-lists/:id", async (req, res) => {
+    try {
       const id = parseInt(req.params.id);
       const list = await storage.getGroceryList(id);
       if (!list) {

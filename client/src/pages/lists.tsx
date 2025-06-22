@@ -57,7 +57,7 @@ export default function Lists() {
         ) : (
           <div className="space-y-4">
             {groceryLists.map((list) => (
-              <Link key={list.id} href={`/meals/${list.id}`}>
+              <Link key={list.id} href={`/lists/${list.id}`}>
                 <div className="glassmorphism rounded-2xl p-4 shadow-lg cursor-pointer hover:scale-105 transition-transform">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">

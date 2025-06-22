@@ -1,3 +1,4 @@
+import React from "react";
 import { useAuth, useUpdateProfile, useLogout, calculateDailyCalories, calculateCaloriesPerMeal, calculateMacros } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,18 +29,20 @@ export default function Profile() {
     },
   });
 
-  // Update form when user data changes
-  if (user && !form.formState.isDirty) {
-    form.reset({
-      firstName: user.firstName || "",
-      lastName: user.lastName || "",
-      height: user.height || undefined,
-      weight: user.weight || undefined,
-      weeklyWorkouts: user.weeklyWorkouts || 0,
-      calorieThreshold: user.calorieThreshold || 0,
-      mealsPerDay: user.mealsPerDay || 3,
-    });
-  }
+  // Update form when user data changes (avoid re-render loop)
+  React.useEffect(() => {
+    if (user && !form.formState.isDirty) {
+      form.reset({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        height: user.height || undefined,
+        weight: user.weight || undefined,
+        weeklyWorkouts: user.weeklyWorkouts || 0,
+        calorieThreshold: user.calorieThreshold || 0,
+        mealsPerDay: user.mealsPerDay || 3,
+      });
+    }
+  }, [user, form]);
 
   const onSubmit = async (data: UpdateProfile) => {
     try {
