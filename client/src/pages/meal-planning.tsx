@@ -9,7 +9,7 @@ import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BottomNavigation from "@/components/bottom-navigation";
-import AiMealCreator from "@/components/ai-meal-creator";
+
 import type { GroceryList, Meal } from "@shared/schema";
 
 export default function MealPlanning() {
@@ -240,20 +240,7 @@ export default function MealPlanning() {
           )}
         </div>
 
-        {/* AI Meal Creator */}
-        {listId && (
-          <div className="mt-8">
-            <AiMealCreator 
-              listId={listId} 
-              onMealCreated={() => {
-                queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
-                queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
-                queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
-                queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
-              }}
-            />
-          </div>
-        )}
+
       </div>
 
       <BottomNavigation />
