@@ -98,14 +98,19 @@ export default function MealPlanning() {
 
   if (!list) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-rose-600"></div>
+      <div className="app-container fade-for-mic">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="glassmorphism rounded-2xl p-8 animate-pulse">
+            <div className="w-32 h-8 bg-gray-300 rounded mb-4"></div>
+            <div className="w-48 h-4 bg-gray-300 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 pb-20">
+    <div className="app-container fade-for-mic">
       <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center pt-4">
@@ -124,7 +129,7 @@ export default function MealPlanning() {
           'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
         }`}>
           {meals.length === 0 ? (
-            <div className="col-span-full">
+            <div className="col-span-full space-y-4">
               <Card className="glassmorphism border-0 shadow-lg border-2 border-white/30">
                 <CardContent className="p-6 text-center">
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -132,6 +137,16 @@ export default function MealPlanning() {
                   </p>
                 </CardContent>
               </Card>
+              
+              <div className="text-center">
+                <Button
+                  onClick={() => setLocation("/lists")}
+                  className="glassmorphism border-2 border-white/30 bg-white/20 hover:bg-white/30 text-gray-700 shadow-lg"
+                  variant="outline"
+                >
+                  Retour aux listes
+                </Button>
+              </div>
             </div>
           ) : (
             meals.map((meal) => (
