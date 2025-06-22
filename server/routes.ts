@@ -1,23 +1,126 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertGroceryListSchema, insertListItemSchema, insertMealSchema } from "@shared/schema";
+import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
+import { setupSession, requireAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Grocery Lists
-  app.get("/api/grocery-lists", async (req, res) => {
+  // Setup session middleware
+  app.use(setupSession());
+
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
     try {
-      const lists = await storage.getGroceryLists();
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Un utilisateur avec cet email existe déjà" });
+      }
+
+      const user = await storage.createUser(validatedData);
+      req.session.userId = user.id;
+      
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: "Données d'inscription invalides" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      const user = await storage.validateUser(validatedData.email, validatedData.password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Email ou mot de passe invalide" });
+      }
+
+      req.session.userId = user.id;
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: "Données de connexion invalides" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Erreur lors de la déconnexion" });
+      }
+      res.json({ message: "Déconnexion réussie" });
+    });
+  });
+
+  app.get("/api/auth/user", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ message: "Utilisateur non trouvé" });
+      }
+      
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération du profil" });
+    }
+  });
+
+  app.put("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const validatedData = updateProfileSchema.parse(req.body);
+      const user = await storage.updateUser(userId, validatedData);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+      
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: "Données de profil invalides" });
+    }
+  });
+
+  // Grocery Lists
+  app.get("/api/grocery-lists", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const lists = await storage.getGroceryLists(userId);
       res.json(lists);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch grocery lists" });
     }
   });
 
-  app.post("/api/grocery-lists", async (req, res) => {
+  app.post("/api/grocery-lists", requireAuth, async (req, res) => {
     try {
-      const validatedData = insertGroceryListSchema.parse(req.body);
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Session invalide" });
+      }
+      
+      const validatedData = insertGroceryListSchema.parse({
+        ...req.body,
+        userId,
+      });
       const list = await storage.createGroceryList(validatedData);
       res.json(list);
     } catch (error) {

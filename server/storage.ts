@@ -1,8 +1,12 @@
 import { 
+  users,
   groceryLists, 
   foodItems, 
   listItems, 
   meals,
+  type User,
+  type InsertUser,
+  type UpdateProfile,
   type GroceryList, 
   type InsertGroceryList,
   type FoodItem,
@@ -12,11 +16,21 @@ import {
   type Meal,
   type InsertMeal
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
+  // Users
+  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
+  updateUser(id: number, updates: UpdateProfile): Promise<User | undefined>;
+  validateUser(email: string, password: string): Promise<User | null>;
+  
   // Grocery Lists
   createGroceryList(list: InsertGroceryList): Promise<GroceryList>;
-  getGroceryLists(): Promise<GroceryList[]>;
+  getGroceryLists(userId: number): Promise<GroceryList[]>;
   getGroceryList(id: number): Promise<GroceryList | undefined>;
   updateGroceryList(id: number, updates: Partial<GroceryList>): Promise<GroceryList | undefined>;
   
@@ -37,30 +51,55 @@ export interface IStorage {
   deleteMeal(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private groceryLists: Map<number, GroceryList>;
-  private foodItems: Map<number, FoodItem>;
-  private listItems: Map<number, ListItem>;
-  private meals: Map<number, Meal>;
-  private currentListId: number;
-  private currentFoodId: number;
-  private currentListItemId: number;
-  private currentMealId: number;
-
-  constructor() {
-    this.groceryLists = new Map();
-    this.foodItems = new Map();
-    this.listItems = new Map();
-    this.meals = new Map();
-    this.currentListId = 1;
-    this.currentFoodId = 1;
-    this.currentListItemId = 1;
-    this.currentMealId = 1;
-    
-    this.initializeFoodItems();
+export class DatabaseStorage implements IStorage {
+  // User methods
+  async createUser(userData: InsertUser): Promise<User> {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...userData,
+        password: hashedPassword,
+      })
+      .returning();
+    return user;
   }
 
-  private initializeFoodItems() {
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async updateUser(id: number, updates: UpdateProfile): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.getUserByEmail(email);
+    if (!user) return null;
+    
+    const isValid = await bcrypt.compare(password, user.password);
+    return isValid ? user : null;
+  }
+
+  // Initialize food items in database
+  async initializeFoodItems() {
+    const existingItems = await db.select().from(foodItems);
+    if (existingItems.length > 0) return; // Already initialized
+
     const initialFoodItems: InsertFoodItem[] = [
       // Vegetables
       { name: "Carottes", emoji: "🥕", category: "vegetables", season: "autumn", nutrition: { calories: 41, carbs: 9.6, protein: 0.9, fat: 0.2, vitaminA: 835 } },
@@ -89,106 +128,124 @@ export class MemStorage implements IStorage {
       { name: "Quinoa", emoji: "🌾", category: "starches", season: "all", nutrition: { calories: 120, carbs: 22, protein: 4.4, fat: 1.9, fiber: 2.8 } },
     ];
 
-    initialFoodItems.forEach(item => {
-      this.createFoodItem(item);
-    });
+    await db.insert(foodItems).values(initialFoodItems);
   }
 
-  async createGroceryList(insertList: InsertGroceryList): Promise<GroceryList> {
-    const id = this.currentListId++;
-    const list: GroceryList = { ...insertList, id };
-    this.groceryLists.set(id, list);
+  // Grocery Lists
+  async createGroceryList(listData: InsertGroceryList): Promise<GroceryList> {
+    const [list] = await db
+      .insert(groceryLists)
+      .values(listData)
+      .returning();
     return list;
   }
 
-  async getGroceryLists(): Promise<GroceryList[]> {
-    return Array.from(this.groceryLists.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  async getGroceryLists(userId: number): Promise<GroceryList[]> {
+    return await db
+      .select()
+      .from(groceryLists)
+      .where(eq(groceryLists.userId, userId))
+      .orderBy(groceryLists.createdAt);
   }
 
   async getGroceryList(id: number): Promise<GroceryList | undefined> {
-    return this.groceryLists.get(id);
+    const [list] = await db.select().from(groceryLists).where(eq(groceryLists.id, id));
+    return list;
   }
 
   async updateGroceryList(id: number, updates: Partial<GroceryList>): Promise<GroceryList | undefined> {
-    const list = this.groceryLists.get(id);
-    if (!list) return undefined;
-    
-    const updatedList = { ...list, ...updates };
-    this.groceryLists.set(id, updatedList);
-    return updatedList;
+    const [list] = await db
+      .update(groceryLists)
+      .set(updates)
+      .where(eq(groceryLists.id, id))
+      .returning();
+    return list;
   }
 
+  // Food Items
   async getFoodItems(): Promise<FoodItem[]> {
-    return Array.from(this.foodItems.values());
+    return await db.select().from(foodItems);
   }
 
   async getFoodItem(id: number): Promise<FoodItem | undefined> {
-    return this.foodItems.get(id);
-  }
-
-  async createFoodItem(insertItem: InsertFoodItem): Promise<FoodItem> {
-    const id = this.currentFoodId++;
-    const item: FoodItem = { ...insertItem, id };
-    this.foodItems.set(id, item);
+    const [item] = await db.select().from(foodItems).where(eq(foodItems.id, id));
     return item;
   }
 
-  async addItemToList(insertItem: InsertListItem): Promise<ListItem> {
-    const id = this.currentListItemId++;
-    const item: ListItem = { ...insertItem, id };
-    this.listItems.set(id, item);
+  async createFoodItem(itemData: InsertFoodItem): Promise<FoodItem> {
+    const [item] = await db
+      .insert(foodItems)
+      .values(itemData)
+      .returning();
+    return item;
+  }
+
+  // List Items
+  async addItemToList(itemData: InsertListItem): Promise<ListItem> {
+    const [item] = await db
+      .insert(listItems)
+      .values(itemData)
+      .returning();
     return item;
   }
 
   async getListItems(listId: number): Promise<ListItem[]> {
-    return Array.from(this.listItems.values()).filter(item => item.listId === listId);
+    return await db
+      .select()
+      .from(listItems)
+      .where(eq(listItems.listId, listId));
   }
 
   async removeItemFromList(id: number): Promise<boolean> {
-    return this.listItems.delete(id);
+    const result = await db
+      .delete(listItems)
+      .where(eq(listItems.id, id));
+    return result.rowCount > 0;
   }
 
-  async createMeal(insertMeal: InsertMeal): Promise<Meal> {
-    const id = this.currentMealId++;
-    const meal: Meal = { ...insertMeal, id };
-    this.meals.set(id, meal);
-    
+  // Meals
+  async createMeal(mealData: InsertMeal): Promise<Meal> {
+    const [meal] = await db
+      .insert(meals)
+      .values(mealData)
+      .returning();
+
     // Update meal count in grocery list
-    const list = this.groceryLists.get(insertMeal.listId);
-    if (list) {
-      this.updateGroceryList(insertMeal.listId, { mealCount: list.mealCount + 1 });
-    }
-    
+    await db
+      .update(groceryLists)
+      .set({ 
+        mealCount: db.$count(meals, eq(meals.listId, mealData.listId))
+      })
+      .where(eq(groceryLists.id, mealData.listId));
+
     return meal;
   }
 
   async getMeals(listId: number): Promise<Meal[]> {
-    return Array.from(this.meals.values()).filter(meal => meal.listId === listId);
+    return await db
+      .select()
+      .from(meals)
+      .where(eq(meals.listId, listId));
   }
 
   async updateMeal(id: number, updates: Partial<Meal>): Promise<Meal | undefined> {
-    const meal = this.meals.get(id);
-    if (!meal) return undefined;
-    
-    const updatedMeal = { ...meal, ...updates };
-    this.meals.set(id, updatedMeal);
-    return updatedMeal;
+    const [meal] = await db
+      .update(meals)
+      .set(updates)
+      .where(eq(meals.id, id))
+      .returning();
+    return meal;
   }
 
   async deleteMeal(id: number): Promise<boolean> {
-    const meal = this.meals.get(id);
-    if (!meal) return false;
-    
-    // Update meal count in grocery list
-    const list = this.groceryLists.get(meal.listId);
-    if (list) {
-      this.updateGroceryList(meal.listId, { mealCount: Math.max(0, list.mealCount - 1) });
-    }
-    
-    return this.meals.delete(id);
+    const result = await db
+      .delete(meals)
+      .where(eq(meals.id, id));
+    return result.rowCount > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
+
+// Initialize food items on startup
+storage.initializeFoodItems().catch(console.error);

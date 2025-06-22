@@ -1,0 +1,270 @@
+import { useAuth, useUpdateProfile, useLogout, calculateDailyCalories, calculateCaloriesPerMeal } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { updateProfileSchema } from "@shared/schema";
+import type { UpdateProfile } from "@shared/schema";
+import BottomNavigation from "@/components/bottom-navigation";
+
+export default function Profile() {
+  const { user, isLoading } = useAuth();
+  const updateProfileMutation = useUpdateProfile();
+  const logoutMutation = useLogout();
+  const { toast } = useToast();
+
+  const form = useForm<UpdateProfile>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      height: user?.height || undefined,
+      weight: user?.weight || undefined,
+      weeklyWorkouts: user?.weeklyWorkouts || 0,
+    },
+  });
+
+  // Update form when user data changes
+  if (user && !form.formState.isDirty) {
+    form.reset({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      height: user.height || undefined,
+      weight: user.weight || undefined,
+      weeklyWorkouts: user.weeklyWorkouts || 0,
+    });
+  }
+
+  const onSubmit = async (data: UpdateProfile) => {
+    try {
+      await updateProfileMutation.mutateAsync(data);
+      toast({
+        title: "Profil mis à jour",
+        description: "Vos informations ont été sauvegardées avec succès.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de la mise à jour",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
+  // Calculate calories if we have weight, height, and weekly workouts
+  const dailyCalories = user?.weight && user?.height 
+    ? calculateDailyCalories(user.weight, user.height, user.weeklyWorkouts || 0)
+    : null;
+  
+  const caloriesPerMeal = dailyCalories ? calculateCaloriesPerMeal(dailyCalories) : null;
+
+  if (isLoading) {
+    return (
+      <div className="app-container">
+        <div className="p-6 pb-24">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="glassmorphism rounded-2xl p-8 animate-pulse">
+              <div className="w-32 h-8 bg-gray-300 rounded mb-4"></div>
+              <div className="w-48 h-4 bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="app-container">
+        <div className="p-6 pb-24">
+          <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Non connecté</h3>
+            <p className="text-gray-600">Veuillez vous connecter pour accéder à votre profil.</p>
+          </div>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-container">
+      <div className="p-6 pb-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="glassmorphism border-2 border-white/30 rounded-xl text-gray-800 font-medium hover:bg-white/40"
+          >
+            Déconnexion
+          </Button>
+        </div>
+
+        {/* Calorie Information */}
+        {caloriesPerMeal && (
+          <div className="glassmorphism rounded-2xl p-6 shadow-lg mb-6 border-2 border-white/30">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Vos besoins caloriques</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{dailyCalories}</div>
+                <div className="text-sm text-gray-600">kcal / jour</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{caloriesPerMeal}</div>
+                <div className="text-sm text-gray-600">kcal / repas</div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Basé sur votre poids, taille et activité physique
+            </p>
+          </div>
+        )}
+
+        {/* Profile Form */}
+        <div className="glassmorphism rounded-2xl p-6 shadow-lg">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Prénom</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Jean"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Nom</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Dupont"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="height"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Taille (cm)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="175"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="weight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium">Poids (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="70"
+                          className="glassmorphism border-2 border-white/30 text-gray-800"
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="weeklyWorkouts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-700 font-medium">Séances de sport par semaine</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="3"
+                        min="0"
+                        max="20"
+                        className="glassmorphism border-2 border-white/30 text-gray-800"
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="submit"
+                disabled={updateProfileMutation.isPending}
+                className="w-full glassmorphism border-2 border-white/30 rounded-2xl p-3 text-gray-800 font-bold hover:bg-white/40 transition-all bg-white/20"
+              >
+                {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+              </Button>
+            </form>
+          </Form>
+        </div>
+
+        {/* User Info */}
+        <div className="glassmorphism rounded-2xl p-6 shadow-lg mt-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Email :</span>
+              <span className="text-gray-800 font-medium">{user.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Membre depuis :</span>
+              <span className="text-gray-800 font-medium">
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "N/A"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <BottomNavigation />
+    </div>
+  );
+}
