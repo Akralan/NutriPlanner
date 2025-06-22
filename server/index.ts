@@ -9,7 +9,7 @@ const app = express();
 // Trust proxy for rate limiting in cloud environments
 app.set('trust proxy', 1);
 
-// Security middleware
+// Enhanced security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -18,31 +18,65 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow Vite dev scripts
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "ws:", "wss:"], // Allow WebSocket for Vite HMR
+      connectSrc: ["'self'", "ws:", "wss:", "https://api.openai.com"], // Allow WebSocket for Vite HMR and OpenAI
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   },
   crossOriginEmbedderPolicy: false, // Disable for Vite dev
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  frameguard: { action: 'deny' },
+  xssFilter: true,
 }));
 
-// Rate limiting
-const limiter = rateLimit({
+// Enhanced rate limiting with different tiers
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: { message: "Too many requests, please try again later." },
+  message: "Trop de requêtes, réessayez plus tard",
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use("/api", limiter);
 
-// Stricter rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 auth attempts per windowMs
-  message: { message: "Too many authentication attempts, please try again later." },
+  max: 5, // Stricter limit for auth endpoints
+  message: "Trop de tentatives de connexion, réessayez plus tard",
   skipSuccessfulRequests: true,
 });
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Very strict for AI endpoints
+  message: "Limite de requêtes IA atteinte, réessayez dans 1 minute",
+});
+
+// Apply rate limiters
+app.use("/api", generalLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
+app.use("/api/ai", aiLimiter);
+
+// Input sanitization middleware
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        // Basic XSS protection - remove script tags and dangerous patterns
+        req.body[key] = req.body[key]
+          .replace(/<script[^>]*>.*?<\/script>/gi, '')
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+\s*=/gi, '');
+      }
+    }
+  }
+  next();
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));

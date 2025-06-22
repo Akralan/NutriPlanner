@@ -4,6 +4,8 @@ import { body, validationResult } from "express-validator";
 import { storage } from "./storage";
 import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
 import { generateToken, requireAuth } from "./auth";
+import { AiMealService } from "./ai-service";
+import { aiMealRequestSchema, checkAiRateLimit } from "./security";
 
 interface AuthRequest extends Request {
   userId?: number;
@@ -77,11 +79,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Déconnexion réussie" });
   });
 
-  app.get("/api/auth/user", requireAuth, async (req, res) => {
+  app.get("/api/auth/user", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const user = await storage.getUserById(userId);
@@ -96,11 +98,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/auth/profile", requireAuth, async (req, res) => {
+  app.put("/api/auth/profile", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const validatedData = updateProfileSchema.parse(req.body);
@@ -118,11 +120,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Grocery Lists
-  app.get("/api/grocery-lists", requireAuth, async (req, res) => {
+  app.get("/api/grocery-lists", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const lists = await storage.getGroceryLists(userId);
@@ -132,11 +134,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/grocery-lists", requireAuth, async (req, res) => {
+  app.post("/api/grocery-lists", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const validatedData = insertGroceryListSchema.parse({
@@ -397,11 +399,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Nutrition Logs
-  app.get("/api/nutrition-logs/:period?", requireAuth, async (req, res) => {
+  app.get("/api/nutrition-logs/:period?", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const period = req.params.period || "7d";
@@ -414,17 +416,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/nutrition-logs", requireAuth, async (req, res) => {
+  app.post("/api/nutrition-logs", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.userId;
       if (!userId) {
-        return res.status(401).json({ message: "Session invalide" });
+        return res.status(401).json({ message: "Token invalide" });
       }
       
       const log = await storage.updateTodayNutritionLog(userId, req.body);
       res.json(log);
     } catch (error) {
       res.status(500).json({ message: "Failed to update nutrition log" });
+    }
+  });
+
+  // AI-powered meal creation
+  const aiService = new AiMealService();
+
+  app.post("/api/ai/create-meal", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+
+      // Rate limiting for AI requests
+      if (!checkAiRateLimit(userId, 10, 60000)) {
+        return res.status(429).json({ message: "Trop de requêtes IA. Réessayez dans 1 minute." });
+      }
+
+      const validatedData = aiMealRequestSchema.parse(req.body);
+      
+      // Create meal with AI
+      const aiMealData = await aiService.createMealFromDescription(
+        validatedData.description, 
+        userId
+      );
+
+      // Create the meal in database
+      const mealData = {
+        name: aiMealData.name,
+        listId: validatedData.listId,
+        calories: aiMealData.estimatedCalories,
+        protein: aiMealData.estimatedProtein,
+        fat: aiMealData.estimatedFat,
+        carbs: aiMealData.estimatedCarbs,
+        ingredients: aiMealData.ingredients,
+        completed: false,
+      };
+
+      const meal = await storage.createMeal(mealData);
+
+      res.json({ meal, aiGenerated: true });
+    } catch (error) {
+      console.error("AI meal creation error:", error);
+      res.status(500).json({ message: "Erreur lors de la création du repas avec l'IA" });
+    }
+  });
+
+  app.post("/api/ai/meal-suggestions", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+
+      // Rate limiting for AI requests
+      if (!checkAiRateLimit(userId, 15, 60000)) {
+        return res.status(429).json({ message: "Trop de requêtes IA. Réessayez dans 1 minute." });
+      }
+
+      const { preferences } = req.body;
+      if (!preferences || typeof preferences !== 'string') {
+        return res.status(400).json({ message: "Préférences requises" });
+      }
+
+      const suggestions = await aiService.generateMealSuggestions(preferences, userId);
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("AI suggestions error:", error);
+      res.status(500).json({ message: "Erreur lors de la génération de suggestions" });
     }
   });
 

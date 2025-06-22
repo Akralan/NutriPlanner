@@ -21,7 +21,13 @@ export function useLogin() {
   return useMutation({
     mutationFn: async (data: LoginData) => {
       const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      const result = await response.json();
+      
+      if (result.token) {
+        localStorage.setItem('auth_token', result.token);
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -35,7 +41,13 @@ export function useRegister() {
   return useMutation({
     mutationFn: async (data: InsertUser) => {
       const response = await apiRequest("POST", "/api/auth/register", data);
-      return response.json();
+      const result = await response.json();
+      
+      if (result.token) {
+        localStorage.setItem('auth_token', result.token);
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -48,6 +60,7 @@ export function useLogout() {
   
   return useMutation({
     mutationFn: async () => {
+      localStorage.removeItem('auth_token');
       await apiRequest("POST", "/api/auth/logout", {});
     },
     onSuccess: () => {
