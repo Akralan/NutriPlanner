@@ -98,18 +98,17 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* AI Meal Creator */}
-      <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-md border border-white/30 dark:border-white/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-rose-800 dark:text-rose-200">
-            <Sparkles className="h-5 w-5" />
-            Créateur de repas IA
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+        <div className="flex items-center gap-2 text-rose-600 mb-4">
+          <Sparkles className="h-5 w-5" />
+          <h3 className="text-lg font-semibold">Créateur de repas IA</h3>
+        </div>
+        
+        <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-rose-700 dark:text-rose-300">
+            <label className="text-sm font-medium text-rose-700">
               Décrivez le repas souhaité
             </label>
             <Textarea
@@ -117,7 +116,7 @@ export default function AiMealCreator({ listId, onMealCreated }: AiMealCreatorPr
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
-              className="bg-white/50 dark:bg-black/50 border-rose-200 dark:border-rose-700"
+              className="glassmorphism-input border-white/30 resize-none h-24"
               rows={3}
             />
             <div className="text-xs text-rose-600 dark:text-rose-400">
