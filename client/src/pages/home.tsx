@@ -140,56 +140,56 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pb-20">
       <div className="p-4 space-y-3">
         {/* Header */}
-        <div className="text-center pt-4 pb-2">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <div className="glassmorphism rounded-2xl p-4 text-center border-2 border-white/30 shadow-lg">
+          <h1 className="text-xl font-bold text-gray-800 drop-shadow-sm">
             Bonjour {user?.firstName}
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
+          <p className="text-gray-600 text-sm font-medium">
             Votre score nutritionnel
           </p>
         </div>
 
         {/* Today's Score Card - Mobile Style */}
-        <div className="glassmorphism rounded-2xl p-4 text-center">
+        <div className="glassmorphism rounded-2xl p-4 text-center border-2 border-white/30 shadow-lg">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Target className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Score du jour</span>
+            <Target className="h-4 w-4 text-gray-700" />
+            <span className="text-sm font-medium text-gray-800 drop-shadow-sm">Score du jour</span>
           </div>
           
-          <div className={`text-4xl font-bold mb-2 ${getScoreColor(todayScore)}`}>
-            {todayScore}<span className="text-lg text-gray-500">/100</span>
+          <div className={`text-4xl font-bold mb-2 drop-shadow-sm ${getScoreColor(todayScore)}`}>
+            {todayScore}<span className="text-lg text-gray-600">/100</span>
           </div>
           
-          <Badge {...getScoreBadge(todayScore)} className="mb-3">
+          <Badge {...getScoreBadge(todayScore)} className="mb-3 shadow-sm">
             {getScoreBadge(todayScore).label}
           </Badge>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-lg font-semibold text-blue-600">
+            <div className="text-center glassmorphism-dark rounded-xl p-2">
+              <p className="text-lg font-semibold text-blue-700 drop-shadow-sm">
                 {todayCalories}
               </p>
-              <p className="text-xs text-gray-500">Calories</p>
+              <p className="text-xs text-gray-600 font-medium">Calories</p>
             </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-purple-600">
+            <div className="text-center glassmorphism-dark rounded-xl p-2">
+              <p className="text-lg font-semibold text-purple-700 drop-shadow-sm">
                 {todayCompletedMeals.length}
               </p>
-              <p className="text-xs text-gray-500">Repas</p>
+              <p className="text-xs text-gray-600 font-medium">Repas</p>
             </div>
           </div>
         </div>
 
         {/* Calories Chart - Bar Style */}
         {chartData.length > 0 && (
-          <div className="glassmorphism rounded-2xl p-4">
+          <div className="glassmorphism rounded-2xl p-4 border-2 border-white/30 shadow-lg">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Calories (7 derniers jours)</span>
+                <Calendar className="h-4 w-4 text-gray-700" />
+                <span className="text-sm font-medium text-gray-800 drop-shadow-sm">Calories (7 derniers jours)</span>
               </div>
             </div>
-            <div className="h-32">
+            <div className="h-32 glassmorphism-dark rounded-xl p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData.slice(-4)}>
                   <XAxis 
@@ -210,38 +210,38 @@ export default function Home() {
 
         {/* Quick Stats - Mobile Style */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="glassmorphism rounded-2xl p-3 text-center">
-            <p className="text-lg font-bold text-green-600">
+          <div className="glassmorphism rounded-2xl p-3 text-center border-2 border-white/30 shadow-lg">
+            <p className="text-lg font-bold text-green-700 drop-shadow-sm">
               {chartData.filter(day => day.score >= 80).length}
             </p>
-            <p className="text-xs text-gray-500">Jours excellents</p>
+            <p className="text-xs text-gray-600 font-medium">Jours excellents</p>
           </div>
           
-          <div className="glassmorphism rounded-2xl p-3 text-center">
-            <p className="text-lg font-bold text-blue-600">
+          <div className="glassmorphism rounded-2xl p-3 text-center border-2 border-white/30 shadow-lg">
+            <p className="text-lg font-bold text-blue-700 drop-shadow-sm">
               {completedMeals.length}
             </p>
-            <p className="text-xs text-gray-500">Repas total</p>
+            <p className="text-xs text-gray-600 font-medium">Repas total</p>
           </div>
         </div>
 
         {/* Current Meals Table */}
-        <div className="glassmorphism rounded-2xl p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Repas actuels</h3>
+        <div className="glassmorphism rounded-2xl p-4 border-2 border-white/30 shadow-lg">
+          <h3 className="text-sm font-medium text-gray-800 drop-shadow-sm mb-3">Repas actuels</h3>
           {todayCompletedMeals.length > 0 ? (
             <div className="space-y-2">
               {todayCompletedMeals.map((meal: any, index: number) => (
-                <div key={meal.id} className="flex justify-between items-center p-2 bg-white/50 rounded-lg">
+                <div key={meal.id} className="flex justify-between items-center p-2 glassmorphism-dark rounded-xl border border-white/20">
                   <div>
-                    <span className="text-sm font-medium text-gray-800">{meal.name}</span>
-                    <p className="text-xs text-gray-500">{meal.calories} cal</p>
+                    <span className="text-sm font-medium text-gray-800 drop-shadow-sm">{meal.name}</span>
+                    <p className="text-xs text-gray-600 font-medium">{meal.calories} cal</p>
                   </div>
-                  <span className="text-xs text-green-600">✓ Terminé</span>
+                  <span className="text-xs text-green-700 font-bold drop-shadow-sm">✓ Terminé</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-500 text-center py-4">Aucun repas terminé aujourd'hui</p>
+            <p className="text-xs text-gray-600 text-center py-4 font-medium">Aucun repas terminé aujourd'hui</p>
           )}
         </div>
       </div>
