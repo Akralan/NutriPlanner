@@ -72,6 +72,29 @@ export default function MealPlanning() {
     return ingredients.slice(0, 3).map(ing => ing.foodItem?.emoji || "🥘").join("");
   };
 
+  const getMealBackgroundStyle = (completedAt: string | null) => {
+    if (!completedAt) return "bg-white/90 dark:bg-gray-800/90";
+    
+    const hour = new Date(completedAt).getHours();
+    
+    if (hour >= 5 && hour < 9) {
+      // Petit déjeuner - levé de soleil (rose-orange pastel)
+      return "bg-gradient-to-br from-orange-100/80 via-pink-100/80 to-yellow-100/80 dark:from-orange-900/40 dark:via-pink-900/40 dark:to-yellow-900/40";
+    } else if (hour >= 9 && hour < 15) {
+      // Déjeuner - soleil au milieu (jaune-bleu pastel)
+      return "bg-gradient-to-br from-blue-100/80 via-cyan-100/80 to-yellow-100/80 dark:from-blue-900/40 dark:via-cyan-900/40 dark:to-yellow-900/40";
+    } else if (hour >= 15 && hour < 19) {
+      // Goûter/fin d'après-midi - soleil bas (orange-violet pastel)
+      return "bg-gradient-to-br from-orange-100/80 via-purple-100/80 to-pink-100/80 dark:from-orange-900/40 dark:via-purple-900/40 dark:to-pink-900/40";
+    } else if (hour >= 19 && hour < 23) {
+      // Dîner - soir (violet-bleu foncé pastel)
+      return "bg-gradient-to-br from-purple-100/80 via-indigo-100/80 to-blue-200/80 dark:from-purple-900/40 dark:via-indigo-900/40 dark:to-blue-900/40";
+    } else {
+      // Nuit - très foncé (bleu-violet très foncé pastel)
+      return "bg-gradient-to-br from-slate-200/80 via-blue-200/80 to-indigo-200/80 dark:from-slate-900/60 dark:via-blue-900/60 dark:to-indigo-900/60";
+    }
+  };
+
   if (!list) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -94,7 +117,11 @@ export default function MealPlanning() {
         </div>
 
         {/* Meals List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className={`gap-6 ${
+          meals.length === 1 ? 'flex justify-center' :
+          meals.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
+          'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        }`}>
           {meals.length === 0 ? (
             <div className="col-span-full">
               <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md">
@@ -112,7 +139,7 @@ export default function MealPlanning() {
                 open={openMeals[meal.id]} 
                 onOpenChange={() => toggleMealOpen(meal.id)}
               >
-                <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-0 shadow-md overflow-hidden">
+                <Card className={`${getMealBackgroundStyle(meal.completedAt)} backdrop-blur-sm border-0 shadow-md overflow-hidden`}>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between">

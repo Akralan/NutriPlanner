@@ -54,9 +54,13 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
       });
       
       if (currentMealId) {
+        // Invalidate meal-specific queries to update meal info
         queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${currentListId}/meals`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/meals/${currentMealId}`] });
       } else {
+        // Invalidate grocery list queries
         queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${currentListId}/items`] });
       }
       
       onClose();
