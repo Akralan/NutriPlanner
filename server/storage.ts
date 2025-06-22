@@ -237,7 +237,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(meals.listId, listId));
   }
 
-  async updateMeal(id: number, updates: Partial<Meal>): Promise<Meal | undefined> {
+  async updateMeal(id: number, updates: any): Promise<Meal | undefined> {
     const [meal] = await db
       .update(meals)
       .set(updates)

@@ -113,18 +113,24 @@ export default function MealPlanning() {
                     <CardHeader className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={meal.completed || false}
-                              onCheckedChange={(checked) => {
-                                toggleMealMutation.mutate({
-                                  mealId: meal.id,
-                                  completed: !!checked,
-                                  meal
-                                });
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={meal.completed || false}
+                                onCheckedChange={(checked) => {
+                                  toggleMealMutation.mutate({
+                                    mealId: meal.id,
+                                    completed: !!checked,
+                                    meal
+                                  });
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5"
+                              />
+                              <span className={`text-xs font-medium ${meal.completed ? 'text-green-600' : 'text-orange-600'}`}>
+                                {meal.completed ? 'Je l\'ai mangé' : 'À manger'}
+                              </span>
+                            </div>
                             <span className="text-lg">
                               {getIngredientEmojis(meal.ingredients)}
                             </span>
@@ -139,7 +145,12 @@ export default function MealPlanning() {
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               <p>Créé le {meal.createdAt ? new Date(meal.createdAt).toLocaleDateString("fr-FR") : "Date inconnue"}</p>
                               {meal.completed && meal.completedAt && (
-                                <p className="text-green-600">Mangé le {new Date(meal.completedAt).toLocaleDateString("fr-FR")}</p>
+                                <p className="text-green-600 font-medium">
+                                  Je l'ai mangé le {new Date(meal.completedAt).toLocaleDateString("fr-FR")} à {new Date(meal.completedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                              )}
+                              {!meal.completed && (
+                                <p className="text-orange-600 font-medium">À manger</p>
                               )}
                             </div>
                           </div>
