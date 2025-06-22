@@ -118,6 +118,165 @@ export default function Profile() {
 
         {/* Desktop responsive layout */}
         <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+          {/* Personal Information Form */}
+          <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Informations personnelles</h3>
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Prénom</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Nom</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="height"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Taille (cm)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="number"
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Poids (kg)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="number"
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="weeklyWorkouts"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700">Séances de sport par semaine</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number"
+                          value={field.value || 0}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          className="glassmorphism border-2 border-white/30 rounded-xl"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="calorieThreshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Seuil calories (%)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="number"
+                            value={field.value || 0}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mealsPerDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Repas par jour</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="number"
+                            value={field.value || 3}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 3)}
+                            className="glassmorphism border-2 border-white/30 rounded-xl"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="text-xs text-gray-600 mt-2">
+                  {(form.watch('calorieThreshold') || 0) < 0 && "Perte de poids"} 
+                  {(form.watch('calorieThreshold') || 0) > 0 && "Prise de masse"}
+                </div>
+
+                <Button 
+                  type="submit" 
+                  disabled={updateProfileMutation.isPending}
+                  className="w-full glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium py-3 rounded-xl shadow-lg transition-all duration-300"
+                >
+                  {updateProfileMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                </Button>
+              </form>
+            </Form>
+          </div>
+
           {/* Calorie Information */}
           {caloriesPerMeal && macros && (
             <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30">

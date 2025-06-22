@@ -1,7 +1,104 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import BottomNavigation from "@/components/bottom-navigation";
 import type { GroceryList } from "@shared/schema";
+
+function CreateListButton() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createListMutation = useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const response = await apiRequest("POST", "/api/grocery-lists", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Liste créée",
+        description: "Votre nouvelle liste de courses a été créée avec succès",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      setName("");
+      setOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer la liste",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast({
+        title: "Nom requis",
+        description: "Veuillez entrer un nom pour votre liste",
+        variant: "destructive",
+      });
+      return;
+    }
+    createListMutation.mutate({ name: name.trim() });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
+          <Plus className="h-4 w-4 mr-2" />
+          Créer une liste
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="glassmorphism border-2 border-white/30">
+        <DialogHeader>
+          <DialogTitle className="text-gray-800">Nouvelle liste de courses</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nom de la liste
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Courses de la semaine"
+              className="glassmorphism border-2 border-white/30 rounded-xl"
+              maxLength={100}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex-1 glassmorphism border-2 border-white/30 rounded-xl text-gray-700 hover:bg-white/40"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              disabled={createListMutation.isPending}
+              className="flex-1 glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium rounded-xl"
+            >
+              {createListMutation.isPending ? "Création..." : "Créer"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Lists() {
   const [location] = useLocation();
@@ -53,12 +150,8 @@ export default function Lists() {
           <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
             <span className="text-4xl mb-4 block">📋</span>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Aucune liste</h3>
-            <p className="text-gray-600 mb-4">Créez votre première liste de courses depuis l'accueil.</p>
-            <Link href="/">
-              <button className="glassmorphism border-2 border-white/30 rounded-xl px-4 py-2 text-gray-800 font-bold hover:bg-white/40 transition-colors bg-white/20">
-                Aller à l'accueil
-              </button>
-            </Link>
+            <p className="text-gray-600 mb-4">Créez votre première liste de courses pour commencer.</p>
+            <CreateListButton />
           </div>
         ) : (
           <div className="space-y-4">
