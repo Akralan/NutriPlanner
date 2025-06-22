@@ -13,9 +13,10 @@ interface NutritionModalProps {
   onClose: () => void;
   foodItem: FoodItem | null;
   currentListId?: number;
+  currentMealId?: number;
 }
 
-export default function NutritionModal({ isOpen, onClose, foodItem, currentListId }: NutritionModalProps) {
+export default function NutritionModal({ isOpen, onClose, foodItem, currentListId, currentMealId }: NutritionModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState("kg");
   const { toast } = useToast();
@@ -23,21 +24,41 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
 
   const addToListMutation = useMutation({
     mutationFn: async () => {
-      if (!foodItem || !currentListId) throw new Error("Missing required data");
+      if (!foodItem) throw new Error("Missing food item");
       
-      return apiRequest("POST", "/api/list-items", {
-        listId: currentListId,
-        foodItemId: foodItem.id,
-        quantity,
-        unit,
-      });
+      if (currentMealId) {
+        // Add ingredient to existing meal
+        return apiRequest("POST", "/api/meal-ingredients", {
+          mealId: currentMealId,
+          foodItemId: foodItem.id,
+          quantity,
+          unit,
+        });
+      } else if (currentListId) {
+        // Add to grocery list
+        return apiRequest("POST", "/api/list-items", {
+          listId: currentListId,
+          foodItemId: foodItem.id,
+          quantity,
+          unit,
+        });
+      } else {
+        throw new Error("Missing target (list or meal)");
+      }
     },
     onSuccess: () => {
+      const isAddingToMeal = !!currentMealId;
       toast({
-        title: "Ajouté à la liste",
-        description: `${foodItem?.name} a été ajouté à votre liste de courses.`,
+        title: isAddingToMeal ? "Ajouté au repas" : "Ajouté à la liste",
+        description: `${foodItem?.name} a été ajouté ${isAddingToMeal ? 'au repas' : 'à votre liste de courses'}.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      
+      if (currentMealId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${currentListId}/meals`] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      }
+      
       onClose();
       setQuantity(1);
       setUnit("kg");
@@ -45,7 +66,7 @@ export default function NutritionModal({ isOpen, onClose, foodItem, currentListI
     onError: () => {
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter l'aliment à la liste.",
+        description: `Impossible d'ajouter l'aliment ${currentMealId ? 'au repas' : 'à la liste'}.`,
         variant: "destructive",
       });
     },

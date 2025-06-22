@@ -284,6 +284,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/meal-ingredients", async (req, res) => {
+    try {
+      const { mealId, foodItemId, quantity, unit } = req.body;
+      
+      if (!mealId || !foodItemId || !quantity || !unit) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const updatedMeal = await storage.addIngredientToMeal(mealId, {
+        foodItemId,
+        quantity,
+        unit
+      });
+
+      if (!updatedMeal) {
+        return res.status(404).json({ message: "Meal or food item not found" });
+      }
+
+      res.json(updatedMeal);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add ingredient to meal" });
+    }
+  });
+
   // Nutrition Logs
   app.get("/api/nutrition-logs/:period?", requireAuth, async (req, res) => {
     try {

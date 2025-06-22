@@ -52,6 +52,7 @@ export interface IStorage {
   getMeals(listId: number): Promise<Meal[]>;
   updateMeal(id: number, updates: Partial<Meal>): Promise<Meal | undefined>;
   deleteMeal(id: number): Promise<boolean>;
+  addIngredientToMeal(mealId: number, ingredient: { foodItemId: number; quantity: number; unit: string }): Promise<Meal | undefined>;
   
   // Nutrition Logs
   createNutritionLog(log: InsertNutritionLog): Promise<NutritionLog>;
@@ -250,6 +251,55 @@ export class DatabaseStorage implements IStorage {
       .delete(meals)
       .where(eq(meals.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async addIngredientToMeal(mealId: number, ingredient: { foodItemId: number; quantity: number; unit: string }): Promise<Meal | undefined> {
+    try {
+      // Get current meal
+      const [meal] = await db.select().from(meals).where(eq(meals.id, mealId));
+      if (!meal) return undefined;
+
+      // Get food item for nutrition calculations
+      const [foodItem] = await db.select().from(foodItems).where(eq(foodItems.id, ingredient.foodItemId));
+      if (!foodItem) return undefined;
+
+      // Update ingredients array
+      const currentIngredients = meal.ingredients as any[] || [];
+      const newIngredient = {
+        foodItemId: ingredient.foodItemId,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+        foodItem: foodItem // Include food item data for display
+      };
+      const updatedIngredients = [...currentIngredients, newIngredient];
+
+      // Calculate new nutrition totals
+      const nutrition = foodItem.nutrition as any;
+      const multiplier = ingredient.unit === "kg" ? ingredient.quantity : ingredient.quantity / 1000;
+      
+      const additionalCalories = Math.round((nutrition.calories || 0) * multiplier);
+      const additionalProtein = Math.round((nutrition.protein || 0) * multiplier);
+      const additionalFat = Math.round((nutrition.fat || 0) * multiplier);
+      const additionalCarbs = Math.round((nutrition.carbs || 0) * multiplier);
+
+      // Update meal with new totals and ingredients
+      const [updatedMeal] = await db
+        .update(meals)
+        .set({
+          ingredients: updatedIngredients,
+          calories: meal.calories + additionalCalories,
+          protein: meal.protein + additionalProtein,
+          fat: meal.fat + additionalFat,
+          carbs: meal.carbs + additionalCarbs,
+        })
+        .where(eq(meals.id, mealId))
+        .returning();
+
+      return updatedMeal;
+    } catch (error) {
+      console.error("Error adding ingredient to meal:", error);
+      return undefined;
+    }
   }
 
   // Nutrition Logs

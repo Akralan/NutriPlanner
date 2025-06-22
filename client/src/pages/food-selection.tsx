@@ -15,6 +15,11 @@ import type { FoodItem, GroceryList, ListItem } from "@shared/schema";
 export default function FoodSelection() {
   const { id } = useParams<{ id: string }>();
   const listId = id ? parseInt(id) : null;
+  
+  // Check if we're adding to an existing meal
+  const urlParams = new URLSearchParams(window.location.search);
+  const mealId = urlParams.get('mealId') ? parseInt(urlParams.get('mealId')!) : null;
+  
   const [selectedSeason, setSelectedSeason] = useState("all");
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -256,6 +261,7 @@ export default function FoodSelection() {
         onClose={() => setIsModalOpen(false)}
         foodItem={selectedFoodItem}
         currentListId={listId}
+        currentMealId={mealId ?? undefined}
       />
     </div>
   );

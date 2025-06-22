@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BottomNavigation from "@/components/bottom-navigation";
@@ -13,6 +14,7 @@ import type { GroceryList, Meal } from "@shared/schema";
 export default function MealPlanning() {
   const { id } = useParams<{ id: string }>();
   const listId = id ? parseInt(id) : null;
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [openMeals, setOpenMeals] = useState<{ [key: number]: boolean }>({});
@@ -160,11 +162,26 @@ export default function MealPlanning() {
                       </div>
                       
                       {/* Ingredients */}
-                      {meal.ingredients && meal.ingredients.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300">
                             Ingrédients:
                           </h4>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/food-selection/${listId}?mealId=${meal.id}`);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Ajouter des aliments
+                          </Button>
+                        </div>
+                        
+                        {meal.ingredients && meal.ingredients.length > 0 ? (
                           <div className="space-y-1">
                             {meal.ingredients.map((ingredient: any, index: number) => (
                               <div key={index} className="flex items-center gap-2">
@@ -175,8 +192,12 @@ export default function MealPlanning() {
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                            Aucun aliment ajouté pour ce repas
+                          </p>
+                        )}
+                      </div>
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
