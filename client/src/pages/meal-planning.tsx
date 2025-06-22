@@ -114,23 +114,23 @@ export default function MealPlanning() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={meal.completed || false}
-                                onCheckedChange={(checked) => {
-                                  toggleMealMutation.mutate({
-                                    mealId: meal.id,
-                                    completed: !!checked,
-                                    meal
-                                  });
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-5 h-5"
-                              />
-                              <span className={`text-xs font-medium ${meal.completed ? 'text-green-600' : 'text-orange-600'}`}>
-                                {meal.completed ? 'Je l\'ai mangé' : 'À manger'}
-                              </span>
-                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleMealMutation.mutate({
+                                  mealId: meal.id,
+                                  completed: !meal.completed,
+                                  meal
+                                });
+                              }}
+                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                meal.completed 
+                                  ? 'bg-green-100 text-green-800 border border-green-300' 
+                                  : 'bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200'
+                              }`}
+                            >
+                              {meal.completed ? '✓ Mangé' : 'À manger'}
+                            </button>
                             <span className="text-lg">
                               {getIngredientEmojis(meal.ingredients)}
                             </span>

@@ -261,13 +261,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/meals/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      console.log("Updating meal", id, "with data:", req.body);
       const meal = await storage.updateMeal(id, req.body);
       if (!meal) {
         return res.status(404).json({ message: "Meal not found" });
       }
       res.json(meal);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update meal" });
+    } catch (error: any) {
+      console.error("Error updating meal:", error);
+      res.status(500).json({ message: "Failed to update meal", error: error?.message || error });
     }
   });
 
