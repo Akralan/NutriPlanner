@@ -162,7 +162,7 @@ export default function Home() {
     : 0;
 
   return (
-    <div className="app-container fade-for-mic">
+    <div className="app-container">
       <div className="p-4 space-y-3">
         {/* Header */}
         <div className="glassmorphism rounded-2xl p-4 text-center border-2 border-white/30 shadow-lg">

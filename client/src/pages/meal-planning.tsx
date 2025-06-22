@@ -98,7 +98,7 @@ export default function MealPlanning() {
 
   if (!list) {
     return (
-      <div className="app-container fade-for-mic">
+      <div className="app-container">
         <div className="min-h-screen flex items-center justify-center">
           <div className="glassmorphism rounded-2xl p-8 animate-pulse">
             <div className="w-32 h-8 bg-gray-300 rounded mb-4"></div>
@@ -110,7 +110,7 @@ export default function MealPlanning() {
   }
 
   return (
-    <div className="app-container fade-for-mic">
+    <div className="app-container">
       <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center pt-4">

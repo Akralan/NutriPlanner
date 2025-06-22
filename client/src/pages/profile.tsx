@@ -103,7 +103,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="app-container lg:max-w-6xl fade-for-mic">
+    <div className="app-container lg:max-w-6xl">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
