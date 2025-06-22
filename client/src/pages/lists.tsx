@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import BottomNavigation from "@/components/bottom-navigation";
 import type { GroceryList } from "@shared/schema";
 
 export default function Lists() {
+  const [location] = useLocation();
   const { data: groceryLists = [], isLoading } = useQuery<GroceryList[]>({
     queryKey: ["/api/grocery-lists"],
   });
+  
+  // Determine if we're in meals mode or lists mode
+  const isMealsMode = location.startsWith('/meals');
 
   if (isLoading) {
     return (
@@ -41,7 +45,9 @@ export default function Lists() {
   return (
     <div className="app-container">
       <div className="p-6 pb-24">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Mes listes de courses</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          {isMealsMode ? "Mes repas" : "Mes listes de courses"}
+        </h2>
         
         {groceryLists.length === 0 ? (
           <div className="glassmorphism rounded-2xl p-8 shadow-lg text-center">
@@ -57,7 +63,7 @@ export default function Lists() {
         ) : (
           <div className="space-y-4">
             {groceryLists.map((list) => (
-              <Link key={list.id} href={`/lists/${list.id}`}>
+              <Link key={list.id} href={isMealsMode ? `/meals/${list.id}` : `/food-selection/${list.id}`}>
                 <div className="glassmorphism rounded-2xl p-4 shadow-lg cursor-pointer hover:scale-105 transition-transform">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
@@ -65,7 +71,7 @@ export default function Lists() {
                       <div>
                         <h3 className="font-semibold text-gray-800">{list.name}</h3>
                         <p className="text-sm text-gray-600">
-                          Créée le {new Date(list.createdAt).toLocaleDateString("fr-FR")}
+                          Créée le {list.createdAt ? new Date(list.createdAt).toLocaleDateString("fr-FR") : "Date inconnue"}
                         </p>
                       </div>
                     </div>
