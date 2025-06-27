@@ -1,152 +1,153 @@
 import OpenAI from "openai";
-import { validateTextInput, aiMealResponseSchema, type AiMealResponse } from "./security";
-import { storage } from "./storage";
+import fs from "fs";
+import { validateTextInput } from "./security";
+import openAIService from "./ai-openai-service";
+import { z } from "zod";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// Initialisation de l'API OpenAI
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || "" 
 });
 
-export class AiMealService {
-  async createMealFromDescription(description: string, userId: number): Promise<AiMealResponse> {
+// Schéma de validation pour les paramètres de transcription
+const transcriptionParamsSchema = z.object({
+  audioFilePath: z.string().min(1),
+  model: z.string().default("whisper-1")  
+});
+
+// Schéma de validation pour les paramètres audioToMeal
+const audioToMealParamsSchema = z.object({
+  audioFilePath: z.string().min(1),
+  userId: z.number().int().positive(),
+  listId: z.number().int().positive().default(1)
+});
+
+export class AiVoiceService {
+  /**
+   * Transcrit un fichier audio en texte en utilisant l'API OpenAI
+   * @param audioFilePath Chemin vers le fichier audio à transcrire
+   * @param model Modèle de transcription à utiliser (par défaut: whisper-1)
+   * @returns Transcription du fichier audio
+   */
+  async transcribeAudio(audioFilePath: string, model: string = "whisper-1"): Promise<string> {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OpenAI API key not configured");
     }
 
-    // Sanitize input
-    const sanitizedDescription = validateTextInput(description, 500);
-    
-    // Get available food items for context
-    const foodItems = await storage.getFoodItems();
-    const foodContext = foodItems.map(item => {
-      const nutrition = item.nutrition as any;
-      return `ID: ${item.id}, Name: ${item.name}, Category: ${item.category}, Protein: ${nutrition?.protein || 0}g, Carbs: ${nutrition?.carbs || 0}g, Fat: ${nutrition?.fat || 0}g, Calories: ${nutrition?.calories || 0}`;
-    }).join('\n');
-
-    const prompt = `Tu es un nutritionniste expert qui aide à créer des repas équilibrés.
-
-Contexte des aliments disponibles:
-${foodContext}
-
-Description du repas souhaité: "${sanitizedDescription}"
-
-Crée un repas basé uniquement sur les aliments disponibles ci-dessus. Réponds en JSON avec cette structure exacte:
-{
-  "name": "Nom du repas",
-  "description": "Description détaillée du repas",
-  "ingredients": [
-    {
-      "foodItemId": 123,
-      "quantity": 150,
-      "unit": "g"
-    }
-  ],
-  "estimatedCalories": 450,
-  "estimatedProtein": 25,
-  "estimatedCarbs": 45,
-  "estimatedFat": 15
-}
-
-Règles importantes:
-- Utilise UNIQUEMENT les IDs des aliments fournis
-- Les quantités doivent être réalistes (50-300g pour la plupart des aliments)
-- Les unités doivent être "g", "ml", "unité" ou "cuillère"
-- Calcule les macros en fonction des quantités et des valeurs nutritionnelles
-- Maximum 8 ingrédients par repas
-- Le repas doit être équilibré nutritionnellement`;
-
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un nutritionniste expert. Réponds uniquement en JSON valide sans formatage markdown."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 1000,
+      console.log("Début de la transcription audio avec OpenAI");
+      // Validation des paramètres
+      const validParams = transcriptionParamsSchema.parse({ audioFilePath, model });
+      console.log(`Paramètres validés: modèle=${validParams.model}`);
+      
+      // Vérification que le fichier existe
+      if (!fs.existsSync(validParams.audioFilePath)) {
+        console.error(`Fichier introuvable: ${validParams.audioFilePath}`);
+        throw new Error(`Le fichier audio n'existe pas: ${validParams.audioFilePath}`);
+      }
+      console.log(`Fichier audio trouvé: ${validParams.audioFilePath}`);
+
+      // Création d'un stream de lecture pour le fichier audio
+      const audioStream = fs.createReadStream(validParams.audioFilePath);
+      console.log("Stream de lecture créé");
+
+      // Ajout d'un timeout pour l'appel API
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout: L'API OpenAI n'a pas répondu dans le délai imparti")), 30000);
       });
 
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error("Empty response from AI");
+      console.log("Appel de l'API OpenAI pour la transcription...");
+      // Appel à l'API OpenAI pour la transcription avec timeout
+      const transcriptionPromise = openai.audio.transcriptions.create({
+        file: audioStream,
+        model: validParams.model, // Utilisation du modèle spécifié
+        language: "fr", // Langue française
+        response_format: "text" // Format de réponse en texte
+      });
+
+      // Race entre la transcription et le timeout
+      const transcription = await Promise.race([transcriptionPromise, timeoutPromise]) as string;
+      console.log("Transcription reçue avec succès");
+
+      return transcription;
+    } catch (error: any) {
+      console.error("Erreur détaillée lors de la transcription audio:", error);
+      if (error.stack) {
+        console.error("Stack trace:", error.stack);
       }
-
-      // Parse and validate response
-      const parsedResponse = JSON.parse(content);
-      const validatedResponse = aiMealResponseSchema.parse(parsedResponse);
-
-      // Verify all food item IDs exist
-      const validFoodIds = new Set(foodItems.map(item => item.id));
-      for (const ingredient of validatedResponse.ingredients) {
-        if (!validFoodIds.has(ingredient.foodItemId)) {
-          throw new Error(`Invalid food item ID: ${ingredient.foodItemId}`);
-        }
+      if (error.response) {
+        console.error("Réponse d'erreur OpenAI:", error.response.data);
       }
-
-      return validatedResponse;
-    } catch (error) {
-      console.error("AI meal creation error:", error);
-      throw new Error("Failed to create meal with AI assistance");
+      throw new Error(`Échec de la transcription audio: ${error.message}`);
     }
   }
 
-  async generateMealSuggestions(preferences: string, userId: number): Promise<string[]> {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OpenAI API key not configured");
-    }
-
-    const sanitizedPreferences = validateTextInput(preferences, 200);
-    
-    const prompt = `Basé sur ces préférences: "${sanitizedPreferences}"
-    
-Suggère 5 idées de repas simples et équilibrés. Réponds en JSON avec cette structure:
-{
-  "suggestions": [
-    "Idée de repas 1",
-    "Idée de repas 2",
-    "Idée de repas 3",
-    "Idée de repas 4",
-    "Idée de repas 5"
-  ]
-}
-
-Les suggestions doivent être courtes (max 50 caractères) et réalisables.`;
-
+  /**
+   * Traitement direct d'un fichier audio pour générer un repas
+   * @param audioFilePath Chemin vers le fichier audio
+   * @param userId ID de l'utilisateur
+   * @param listId ID de la liste de courses associée (par défaut: 1)
+   * @returns Résultat de la génération du repas
+   */
+  async audioToMeal(audioFilePath: string, userId: number, listId: number = 1): Promise<any> {
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un chef cuisinier. Réponds uniquement en JSON valide."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.8,
-        max_tokens: 500,
-      });
+      // Validation des paramètres
+      const validParams = audioToMealParamsSchema.parse({ audioFilePath, userId, listId });
+      
+      // Transcription de l'audio
+      const transcription = await this.transcribeAudio(validParams.audioFilePath);
+      console.log("########Transcription reçue:", transcription);
+      
+      // Enrichir la description avec l'ID de liste
+      const enrichedDescription = `Analyse cette transcription audio et génère un repas approprié: "${transcription}". Utilise l'ID de liste: ${validParams.listId}.`;
+      console.log("########Description enrichie:", enrichedDescription);
+      
+      // Envoi direct à l'assistant pour générer un repas
+      const result = await openAIService.generateAndAddMeal(enrichedDescription);
+      
+      return {
+        success: true,
+        transcription,
+        meal: result
+      };
+    } catch (error: any) {
+      console.error("Erreur lors du traitement audio-to-meal:", error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error("Empty response from AI");
-      }
-
-      const parsedResponse = JSON.parse(content);
-      return parsedResponse.suggestions || [];
-    } catch (error) {
-      console.error("AI suggestions error:", error);
-      throw new Error("Failed to generate meal suggestions");
+  /**
+   * Traitement d'un fichier audio pour ajouter un aliment
+   * @param audioFilePath Chemin vers le fichier audio
+   * @returns Résultat de l'ajout de l'aliment
+   */
+  async audioToFood(audioFilePath: string): Promise<any> {
+    try {
+      // Transcrire l'audio
+      const transcription = await this.transcribeAudio(audioFilePath);
+      console.log("Transcription pour ajout d'aliment:", transcription);
+      
+      // Enrichir la description pour l'assistant
+      const enrichedDescription = `Analyse cette transcription et ajoute un nouvel aliment à la base de données: "${transcription}". 
+        Fournis les informations nécessaires pour la fonction addFoodItem.`;
+      
+      // Envoyer à l'assistant pour traiter la demande
+      const result = await openAIService.processFoodRequest(enrichedDescription);
+      
+      return {
+        success: true,
+        transcription,
+        foodItem: result
+      };
+    } catch (error: any) {
+      console.error("Erreur lors du traitement audio-to-food:", error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 }

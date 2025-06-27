@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, calculateDailyCalories, calculateCaloriesPerMeal, calculateMacros } from "@/hooks/useAuth";
@@ -9,8 +9,8 @@ import BottomNavigation from "@/components/bottom-navigation";
 import FoodCategory from "@/components/food-category";
 import NutritionModal from "@/components/nutrition-modal";
 import MacroProgress from "@/components/macro-progress";
-import { seasons } from "@/lib/food-data";
-import type { FoodItem, GroceryList, ListItem } from "@shared/schema";
+import { seasons } from "@/lib/seasons";
+import type { FoodItem, GroceryList, ListItem } from "@/../../shared/schema";
 
 export default function FoodSelection() {
   const { id } = useParams<{ id: string }>();
@@ -91,19 +91,44 @@ export default function FoodSelection() {
       )
     : 600; // fallback
 
-  // Get food items with nutrition data
-  const { data: foodItems = [] } = useQuery<FoodItem[]>({
+  // Get all food items with nutrition data
+  const { data: allFoodItems = [] } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
+    // Cache pendant 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch food categories dynamically
+  // Filter food items by selected season
+  const filteredFoodItems = useMemo(() => {
+    if (!allFoodItems) return [];
+    
+    return allFoodItems.filter(item => {
+      // Si la saison sélectionnée est 'all', on prend tout
+      if (selectedSeason === 'all') return true;
+      
+      // Sinon on vérifie si l'item est disponible pour la saison sélectionnée
+      const itemSeasons = Array.isArray(item.season) ? item.season : [item.season];
+      return itemSeasons.includes(selectedSeason) || itemSeasons.includes('all');
+    });
+  }, [allFoodItems, selectedSeason]);
+
+  // Fetch food categories with count based on filtered items
   const { data: foodCategories = [] } = useQuery<Array<{id: string, name: string, emoji: string, count: number}>>({
     queryKey: ["/api/food-categories"],
+    // Cache pendant 5 minutes
+    staleTime: 5 * 60 * 1000,
+    // Calculer le nombre d'items par catégorie
+    select: (categories) => {
+      return categories.map(category => ({
+        ...category,
+        count: filteredFoodItems.filter(item => item.category === category.id).length
+      }));
+    },
   });
 
   // Calculate current meal progress
   useEffect(() => {
-    if (!listItems || !foodItems) return;
+    if (!listItems || !allFoodItems) return;
 
     let totalCalories = 0;
     let totalProtein = 0;
@@ -112,15 +137,28 @@ export default function FoodSelection() {
     let ingredientCount = 0;
 
     listItems.forEach(item => {
-      const foodItem = foodItems.find(f => f.id === item.foodItemId);
+      const foodItem = allFoodItems.find(f => f.id === item.foodItemId);
       if (foodItem?.nutrition) {
         const nutrition = foodItem.nutrition as any;
-        const multiplier = item.quantity || 1;
+        
+        // Calcul du multiplicateur en fonction de l'unité
+        let multiplier;
+        if (item.unit === "kg") {
+          multiplier = item.quantity || 0;
+        } else if (item.unit === "pieces") {
+          // Récupérer le poids moyen de l'aliment et calculer le multiplicateur
+          const averageWeight = nutrition.averageWeight || 0; // en grammes
+          multiplier = ((item.quantity || 0) * averageWeight) / 100; // convertir en unités de 100g
+        } else {
+          // Par défaut, on considère que c'est en grammes
+          multiplier = (item.quantity || 0) / 100; // convertir en unités de 100g
+        }
+        
         totalCalories += (nutrition.calories || 0) * multiplier;
         totalProtein += (nutrition.protein || 0) * multiplier;
         totalFat += (nutrition.fat || 0) * multiplier;
         totalCarbs += (nutrition.carbs || 0) * multiplier;
-        ingredientCount += multiplier;
+        ingredientCount += item.quantity || 1;
       }
     });
 
@@ -131,7 +169,7 @@ export default function FoodSelection() {
       carbs: totalCarbs,
       ingredientCount
     });
-  }, [listItems?.length, foodItems?.length]);
+  }, [listItems?.length, allFoodItems?.length]);
 
   const createMealMutation = useMutation({
     mutationFn: async () => {
@@ -223,10 +261,10 @@ export default function FoodSelection() {
   };
 
   const handleValidateMeal = () => {
-    if (currentMealMacros.calories < targetCaloriesPerMeal * 0.8) {
+    if (currentMealMacros.ingredientCount === 0) {
       toast({
-        title: "Repas incomplet",
-        description: "Ajoutez plus d'aliments pour atteindre vos objectifs nutritionnels.",
+        title: "Repas vide",
+        description: "Ajoutez au moins un aliment pour valider le repas.",
         variant: "destructive",
       });
       return;
@@ -234,8 +272,8 @@ export default function FoodSelection() {
     createMealMutation.mutate();
   };
 
-  // Check if meal is complete (80% of target calories)
-  const isMealComplete = currentMealMacros.calories >= targetCaloriesPerMeal * 0.8;
+  // Check if meal has at least one ingredient
+  const isMealValidatable = currentMealMacros.ingredientCount > 0;
 
   if (!listId || !groceryList) {
     return (
@@ -274,7 +312,7 @@ export default function FoodSelection() {
         />
 
         {/* Validate Meal Button */}
-        {isMealComplete && (
+        {isMealValidatable && (
           <div className="mt-4">
             <Button
               onClick={handleValidateMeal}
@@ -333,12 +371,13 @@ export default function FoodSelection() {
             {expandedCategory && (
               <div className="w-full">
                 {foodCategories
-                  .filter((category: any) => category.id === expandedCategory)
+                  .filter((category: any) => category.id === expandedCategory && category.count > 0)
                   .map((category: any) => (
                     <FoodCategory
                       key={category.id}
                       category={category}
                       selectedSeason={selectedSeason}
+                      items={filteredFoodItems.filter((item: FoodItem) => item.category === category.id)}
                       onItemClick={handleFoodItemClick}
                       getMealInfo={getFoodItemMealInfo}
                       isExpanded={true}
@@ -351,12 +390,13 @@ export default function FoodSelection() {
             {/* Other categories in grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {foodCategories
-                .filter((category: any) => category.id !== expandedCategory)
+                .filter((category: any) => category.id !== expandedCategory && category.count > 0)
                 .map((category: any) => (
                   <FoodCategory
                     key={category.id}
                     category={category}
                     selectedSeason={selectedSeason}
+                    items={filteredFoodItems.filter((item: FoodItem) => item.category === category.id)}
                     onItemClick={handleFoodItemClick}
                     getMealInfo={getFoodItemMealInfo}
                     isExpanded={false}

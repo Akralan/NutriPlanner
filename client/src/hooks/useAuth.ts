@@ -1,17 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { User, InsertUser, LoginData, UpdateProfile } from "@shared/schema";
+import type { User, InsertUser, LoginData, UpdateProfile } from "@/../../shared/schema";
 
 export function useAuth() {
+  // Vérifier si un token existe avant même de faire la requête
+  const token = localStorage.getItem('auth_token');
+  
+  // Si pas de token, retourner directement un état non authentifié
+  if (!token) {
+    return {
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+    };
+  }
+  
+  // Sinon, faire la requête normalement
   const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
   });
+
+  // Gérer l'erreur en dehors de l'appel useQuery
+  if (error) {
+    console.log("Erreur d'authentification silencieuse:", error);
+  }
 
   return {
     user,
     isLoading,
-    isAuthenticated: !!user && !error,
+    isAuthenticated: !!user,
   };
 }
 
@@ -65,7 +85,7 @@ export function useLogout() {
     },
     onSuccess: () => {
       queryClient.clear();
-      window.location.href = "/";
+      window.location.href = "/";    
     },
   });
 }

@@ -1,11 +1,10 @@
-import { convertCSVToAppFormat } from './csv-parser';
+export interface Season {
+  id: string;
+  name: string;
+  emoji: string;
+}
 
-// Get data from CSV
-const csvData = convertCSVToAppFormat();
-
-export const foodCategories = csvData.categories;
-
-export const seasons = [
+export const seasons: Season[] = [
   { id: "all", name: "Toutes saisons", emoji: "🌱" },
   { id: "spring", name: "Printemps", emoji: "🌸" },
   { id: "summer", name: "Été", emoji: "☀️" },

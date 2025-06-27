@@ -5,12 +5,67 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Copy as CopyIcon, Check, X, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BottomNavigation from "@/components/bottom-navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 
-import type { GroceryList, Meal } from "@shared/schema";
+import type { GroceryList, Meal } from "@/../../shared/schema";
+
+function DuplicateMealButton({ meal }: { meal: any }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(`${meal.name} (copie)`);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { id } = useParams<{ id: string }>();
+  const listId = id ? parseInt(id) : null;
+
+  const duplicateMealMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/meals/${meal.id}/duplicate`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Repas dupliqué",
+        description: "Votre repas a été dupliqué avec succès",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      setOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de dupliquer le repas",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    duplicateMealMutation.mutate();
+  };
+
+  return (
+    <Button 
+      onClick={handleDuplicate} 
+      variant="ghost" 
+      size="icon" 
+      className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
+      disabled={duplicateMealMutation.isPending}
+    >
+      <CopyIcon className="h-3 w-3 text-gray-500 hover:text-gray-800" />
+    </Button>
+  );
+}
 
 export default function MealPlanning() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +74,8 @@ export default function MealPlanning() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [openMeals, setOpenMeals] = useState<{ [key: number]: boolean }>({});
+  const [mealToDelete, setMealToDelete] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: list } = useQuery<GroceryList>({
     queryKey: ["/api/grocery-lists", listId],
@@ -31,35 +88,59 @@ export default function MealPlanning() {
   });
 
   const toggleMealMutation = useMutation({
-    mutationFn: async ({ mealId, completed, meal }: { mealId: number; completed: boolean; meal: any }) => {
-      const updateData = completed 
-        ? { completed, completedAt: new Date().toISOString() }
-        : { completed, completedAt: null };
+    mutationFn: async ({ mealId, completed }: { mealId: number; completed: boolean }) => {
+      const updates = {
+        completed,
+        // Envoyer un objet Date natif au lieu d'une chaîne ISO
+        completedAt: completed ? new Date() : null
+      };
       
-      const updatedMeal = await apiRequest("PATCH", `/api/meals/${mealId}`, updateData);
-      
-      // Update nutrition log to recalculate totals
-      if (meal) {
-        await apiRequest("POST", "/api/nutrition-logs", {
-          totalCalories: 0, // Server will recalculate based on actual completed meals
-          totalProtein: 0,
-          totalFat: 0,
-          totalCarbs: 0,
-          targetCalories: 2200,
-          mealsCompleted: 0,
-        });
-      }
-      
-      return updatedMeal;
+      const response = await apiRequest("PATCH", `/api/meals/${mealId}`, updates);
+      return response;
+    },
+    onSuccess: () => {
+      // Invalider les caches pour forcer le rechargement des données
+      queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
+      toast({
+        title: "Repas mis à jour",
+        description: "Le statut du repas a été enregistré",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Erreur lors de la mise à jour du repas:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le repas",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMealMutation = useMutation({
+    mutationFn: async (mealId: number) => {
+      const response = await apiRequest("DELETE", `/api/meals/${mealId}`, {});
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/grocery-lists/${listId}/meals`] });
       queryClient.invalidateQueries({ queryKey: ["/api/nutrition-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] }); // Invalidate home page cache
-      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] }); // Invalidate lists cache
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-meals"] });
       toast({
-        title: "Repas mis à jour",
-        description: "Le statut du repas a été enregistré",
+        title: "Repas supprimé",
+        description: "Le repas a été supprimé avec succès",
+      });
+      setDeleteDialogOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("Erreur lors de la suppression du repas:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le repas",
+        variant: "destructive",
       });
     },
   });
@@ -67,32 +148,32 @@ export default function MealPlanning() {
   const toggleMealOpen = (mealId: number) => {
     setOpenMeals(prev => ({ ...prev, [mealId]: !prev[mealId] }));
   };
-
+  
   const getIngredientEmojis = (ingredients: any[]) => {
     if (!ingredients || ingredients.length === 0) return "🍽️";
     return ingredients.slice(0, 3).map(ing => ing.foodItem?.emoji || "🥘").join("");
   };
 
-  const getMealBackgroundStyle = (completedAt: string | null) => {
-    if (!completedAt) return "bg-white/90 dark:bg-gray-800/90";
+  const getMealBackgroundStyle = (completed: boolean, completedAt: string | null) => {
+    if (!completed || !completedAt) return "bg-white/90 dark:bg-gray-800/90";
     
     const hour = new Date(completedAt).getHours();
     
-    if (hour >= 5 && hour < 9) {
-      // Petit déjeuner - levé de soleil (rose-orange pastel)
-      return "bg-gradient-to-br from-orange-100/80 via-pink-100/80 to-yellow-100/80 dark:from-orange-900/40 dark:via-pink-900/40 dark:to-yellow-900/40";
-    } else if (hour >= 9 && hour < 15) {
-      // Déjeuner - soleil au milieu (jaune-bleu pastel)
-      return "bg-gradient-to-br from-blue-100/80 via-cyan-100/80 to-yellow-100/80 dark:from-blue-900/40 dark:via-cyan-900/40 dark:to-yellow-900/40";
-    } else if (hour >= 15 && hour < 19) {
-      // Goûter/fin d'après-midi - soleil bas (orange-violet pastel)
-      return "bg-gradient-to-br from-orange-100/80 via-purple-100/80 to-pink-100/80 dark:from-orange-900/40 dark:via-purple-900/40 dark:to-pink-900/40";
-    } else if (hour >= 19 && hour < 23) {
-      // Dîner - soir (violet-bleu foncé pastel)
-      return "bg-gradient-to-br from-purple-100/80 via-indigo-100/80 to-blue-200/80 dark:from-purple-900/40 dark:via-indigo-900/40 dark:to-blue-900/40";
-    } else {
-      // Nuit - très foncé (bleu-violet très foncé pastel)
-      return "bg-gradient-to-br from-slate-200/80 via-blue-200/80 to-indigo-200/80 dark:from-slate-900/60 dark:via-blue-900/60 dark:to-indigo-900/60";
+    // Couleurs différentes selon l'heure du repas
+    if (hour < 10) return "bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-yellow-900/30 dark:to-orange-800/30";
+    if (hour < 14) return "bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/30 dark:to-amber-800/30";
+    if (hour < 18) return "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/30";
+    return "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-800/30";
+  };
+
+  const handleDeleteMeal = (mealId: number) => {
+    setMealToDelete(mealId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteMeal = () => {
+    if (mealToDelete) {
+      deleteMealMutation.mutate(mealToDelete);
     }
   };
 
@@ -111,9 +192,9 @@ export default function MealPlanning() {
 
   return (
     <div className="app-container">
-      <div className="p-4 space-y-4 max-w-7xl mx-auto">
+      <div className="p-6 space-y-4">
         {/* Header */}
-        <div className="text-center pt-4">
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
             Mes repas
           </h1>
@@ -123,12 +204,8 @@ export default function MealPlanning() {
         </div>
 
         {/* Meals List */}
-        <div className={`gap-6 ${
-          meals.length === 1 ? 'flex justify-center' :
-          meals.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
-          'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-        }`}>
-          {meals.length === 0 ? (
+        <div className="space-y-6">
+          {Array.isArray(meals) && meals.length === 0 ? (
             <div className="col-span-full space-y-4">
               <Card className="glassmorphism border-0 shadow-lg border-2 border-white/30">
                 <CardContent className="p-6 text-center">
@@ -149,64 +226,76 @@ export default function MealPlanning() {
               </div>
             </div>
           ) : (
-            meals.map((meal) => (
+            Array.isArray(meals) && meals.length > 0 ? meals.map((meal: any) => (
               <Collapsible 
                 key={meal.id} 
                 open={openMeals[meal.id]} 
                 onOpenChange={() => toggleMealOpen(meal.id)}
               >
-                <Card className={`${getMealBackgroundStyle(meal.completedAt)} backdrop-blur-sm border-0 shadow-lg border-2 border-white/30 overflow-hidden rounded-2xl`}>
+                <Card className={`${getMealBackgroundStyle(meal.completed, meal.completedAt)} glassmorphism meal-card backdrop-blur-sm border-2 border-white/30 shadow-lg overflow-hidden rounded-2xl relative`}>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="p-4 cursor-pointer hover:bg-white/20 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleMealMutation.mutate({
-                                  mealId: meal.id,
-                                  completed: !meal.completed,
-                                  meal
-                                });
-                              }}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                meal.completed 
-                                  ? 'bg-green-100 text-green-800 border border-green-300' 
-                                  : 'bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200'
-                              }`}
-                            >
-                              {meal.completed ? '✓ Mangé' : 'À manger'}
-                            </button>
-                            <span className="text-lg">
-                              {getIngredientEmojis(meal.ingredients)}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900 dark:text-white text-sm">
-                              {meal.name}
-                            </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {meal.calories} cal • {meal.protein}g protéines
-                            </p>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              <p>Créé le {meal.createdAt ? new Date(meal.createdAt).toLocaleDateString("fr-FR") : "Date inconnue"}</p>
-                              {meal.completed && meal.completedAt && (
-                                <p className="text-green-600 font-medium">
-                                  Je l'ai mangé le {new Date(meal.completedAt).toLocaleDateString("fr-FR")} à {new Date(meal.completedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                                </p>
-                              )}
-                              {!meal.completed && (
-                                <p className="text-orange-600 font-medium">À manger</p>
-                              )}
+                            <div className="flex items-center gap-3">
+                              {/* Simple bouton mangé/pas mangé */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleMealMutation.mutate({
+                                    mealId: meal.id,
+                                    completed: !meal.completed
+                                  });
+                                }}
+                                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  meal.completed 
+                                    ? 'bg-green-100 text-green-800 border border-green-300' 
+                                    : 'bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200'
+                                }`}
+                              >
+                                {meal.completed ? '✓ Mangé' : 'À manger'}
+                              </button>
+                              <span className="text-lg">
+                                {getIngredientEmojis(meal.ingredients)}
+                              </span>
+                            </div>
+                          <div className="flex items-center">
+                            <div>
+                              <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                                {meal.name}
+                              </h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {meal.calories} cal • {meal.protein}g protéines
+                              </p>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p>Créé le {meal.createdAt ? new Date(meal.createdAt).toLocaleDateString("fr-FR") : "Date inconnue"}</p>
+                                {meal.completed && meal.completedAt && (
+                                  <p className="text-green-600 font-medium">
+                                    Je l'ai mangé le {new Date(meal.completedAt).toLocaleDateString("fr-FR")} à {new Date(meal.completedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                        {openMeals[meal.id] ? (
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMeal(meal.id);
+                            }}
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {openMeals[meal.id] ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                   </CollapsibleTrigger>
@@ -249,9 +338,14 @@ export default function MealPlanning() {
                       )}
                     </CardContent>
                   </CollapsibleContent>
+                  
+                  {/* Bouton de duplication (en bas à droite) */}
+                  <div className="absolute bottom-2 right-2">
+                    <DuplicateMealButton meal={meal} />
+                  </div>
                 </Card>
               </Collapsible>
-            ))
+            )) : <p>Aucun repas disponible</p>
           )}
         </div>
 
@@ -259,6 +353,33 @@ export default function MealPlanning() {
       </div>
 
       <BottomNavigation />
+      
+      {/* Dialog de confirmation de suppression */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="glassmorphism border-2 border-white/30">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800">Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600">Êtes-vous sûr de vouloir supprimer ce repas ? Cette action est irréversible.</p>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="glassmorphism border-2 border-white/30 text-gray-700"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteMeal}
+              disabled={deleteMealMutation.isPending}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deleteMealMutation.isPending ? "Suppression..." : "Supprimer"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

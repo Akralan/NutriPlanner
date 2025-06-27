@@ -1,4 +1,4 @@
-import type { FoodItem } from "@shared/schema";
+import type { FoodItem } from "@/../../shared/schema";
 
 interface FoodItemProps {
   item: FoodItem;

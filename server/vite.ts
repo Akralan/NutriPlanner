@@ -5,6 +5,10 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const viteLogger = createLogger();
 
@@ -22,13 +26,13 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
+    hmr: false, // Désactiver temporairement HMR pour tester
+    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
     ...viteConfig,
-    configFile: false,
+    // Supprimer configFile car on importe déjà la configuration
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
@@ -36,7 +40,20 @@ export async function setupVite(app: Express, server: Server) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: serverOptions.middlewareMode,
+      hmr: serverOptions.hmr,
+      allowedHosts: serverOptions.allowedHosts,
+      proxy: {
+        // Rediriger toutes les requêtes /api vers le serveur backend
+        '/api': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+          secure: false,
+          ws: true, // Support des WebSockets
+        }
+      }
+    },
     appType: "custom",
   });
 
@@ -46,7 +63,7 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname,
         "..",
         "client",
         "index.html",
@@ -68,7 +85,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

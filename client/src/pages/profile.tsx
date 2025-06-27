@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { updateProfileSchema } from "@shared/schema";
-import type { UpdateProfile } from "@shared/schema";
+import { updateProfileSchema } from "@/../../shared/schema";
+import type { UpdateProfile } from "@/../../shared/schema";
 import BottomNavigation from "@/components/bottom-navigation";
+import MicrophoneSelector from "@/components/microphone-selector";
 
 export default function Profile() {
   const { user, isLoading } = useAuth();
@@ -354,8 +355,14 @@ export default function Profile() {
               </div>
             )}
 
+            {/* Sélecteur de micro */}
+            <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 mb-6 relative z-10">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Paramètres audio</h3>
+              <MicrophoneSelector />
+            </div>
+
             {/* Account Information - positioned at bottom with 50% width on desktop */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 relative z-0">
               <div className="glassmorphism rounded-2xl p-6 shadow-lg border-2 border-white/30 lg:w-1/2">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
                 <div className="space-y-2">

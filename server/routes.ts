@@ -2,10 +2,34 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { body, validationResult } from "express-validator";
 import { storage } from "./storage";
-import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
+import { insertGroceryListSchema, insertListItemSchema, insertMealSchema, insertUserSchema, loginSchema, updateProfileSchema, weightEntrySchema } from "@shared/schema";
 import { generateToken, requireAuth } from "./auth";
-import { AiMealService } from "./ai-service";
 import { aiMealRequestSchema, checkAiRateLimit } from "./security";
+import { AiVoiceService } from "./ai-service";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import os from "os";
+import { customNormalizeEmail } from "./utils";
+import lamejs from "lamejs";
+import { z } from 'zod';
+
+// Configuration de multer pour utiliser uniquement le stockage en mémoire
+const upload = multer({
+  storage: multer.memoryStorage(), // Stockage explicitement en mémoire
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+  },
+  fileFilter: (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    // Accepter uniquement les fichiers audio
+    const allowedMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 'audio/x-wav'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format de fichier non supporté. Veuillez utiliser MP3 ou WAV.'));
+    }
+  }
+});
 
 interface AuthRequest extends Request {
   userId?: number;
@@ -15,14 +39,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Input validation middleware
   const validateRegistration = [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+    body('email').isEmail().customSanitizer(customNormalizeEmail).withMessage('Valid email required'),
     body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name required (1-50 chars)'),
     body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name required (1-50 chars)'),
     body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must be 8+ chars with uppercase, lowercase, and number'),
   ];
 
   const validateLogin = [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+    body('email').isEmail().customSanitizer(customNormalizeEmail).withMessage('Valid email required'),
     body('password').notEmpty().withMessage('Password required'),
   ];
 
@@ -282,15 +306,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/grocery-lists/:listId/items", async (req, res) => {
     try {
       const listId = parseInt(req.params.listId);
+      
+      // Récupérer tous les items de la liste en une seule requête
       const items = await storage.getListItems(listId);
       
-      // Enrich with food item details
-      const enrichedItems = await Promise.all(
-        items.map(async (item) => {
-          const foodItem = await storage.getFoodItem(item.foodItemId);
-          return { ...item, foodItem };
-        })
-      );
+      if (items.length === 0) {
+        return res.json([]);
+      }
+      
+      // Récupérer tous les foodItems nécessaires en une seule requête
+      const foodItemIds = items.map(item => item.foodItemId);
+      const foodItems = await storage.getFoodItemsByIds(foodItemIds);
+      
+      // Créer un map pour un accès rapide
+      const foodItemMap = new Map();
+      foodItems.forEach(item => {
+        foodItemMap.set(item.id, item);
+      });
+      
+      // Enrichir les items avec les détails des aliments
+      const enrichedItems = items.map(item => ({
+        ...item,
+        foodItem: foodItemMap.get(item.foodItemId)
+      }));
       
       res.json(enrichedItems);
     } catch (error) {
@@ -325,20 +363,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/grocery-lists/:listId/meals", async (req, res) => {
     try {
       const listId = parseInt(req.params.listId);
+      
+      // Récupérer tous les repas en une seule requête
       const meals = await storage.getMeals(listId);
       
-      // Enrich with food item details for ingredients
-      const enrichedMeals = await Promise.all(
-        meals.map(async (meal) => {
-          const enrichedIngredients = await Promise.all(
-            (meal.ingredients as any[]).map(async (ingredient) => {
-              const foodItem = await storage.getFoodItem(ingredient.foodItemId);
-              return { ...ingredient, foodItem };
-            })
-          );
-          return { ...meal, ingredients: enrichedIngredients };
-        })
-      );
+      if (meals.length === 0) {
+        return res.json([]);
+      }
+      
+      // Collecter tous les IDs des aliments nécessaires
+      const foodItemIds = new Set();
+      meals.forEach(meal => {
+        (meal.ingredients as any[]).forEach(ingredient => {
+          foodItemIds.add(ingredient.foodItemId);
+        });
+      });
+      
+      // Récupérer tous les aliments en une seule requête
+      const foodItems = await storage.getFoodItemsByIds(Array.from(foodItemIds) as number[]);
+      
+      // Créer un map pour un accès rapide
+      const foodItemMap = new Map();
+      foodItems.forEach(item => {
+        foodItemMap.set(item.id, item);
+      });
+      
+      // Enrichir les repas avec les détails des aliments
+      const enrichedMeals = meals.map(meal => {
+        const enrichedIngredients = (meal.ingredients as any[]).map(ingredient => ({
+          ...ingredient,
+          foodItem: foodItemMap.get(ingredient.foodItemId)
+        }));
+        
+        return {
+          ...meal,
+          ingredients: enrichedIngredients
+        };
+      });
       
       res.json(enrichedMeals);
     } catch (error) {
@@ -398,6 +459,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/meals/:id/duplicate", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const duplicatedMeal = await storage.duplicateMeal(id);
+      
+      if (!duplicatedMeal) {
+        return res.status(404).json({ message: "Meal not found" });
+      }
+      
+      res.json(duplicatedMeal);
+    } catch (error) {
+      console.error("Error duplicating meal:", error);
+      res.status(500).json({ message: "Failed to duplicate meal" });
+    }
+  });
+
   // Nutrition Logs
   app.get("/api/nutrition-logs/:period?", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
@@ -430,72 +507,309 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI-powered meal creation
-  const aiService = new AiMealService();
+  // Routes pour l'IA vocale
+  const aiVoiceService = new AiVoiceService();
 
-  app.post("/api/ai/create-meal", requireAuth, async (req: AuthRequest, res: Response) => {
+  // Route pour la transcription audio
+  app.post("/api/transcribe-audio", upload.single('audio'), async (req: Request, res: Response) => {
+    // Fichier temporaire pour stocker les données du buffer
+    let tempFilePath = "";
+    
     try {
-      const userId = req.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Token invalide" });
-      }
-
-      // Rate limiting for AI requests
-      if (!checkAiRateLimit(userId, 10, 60000)) {
-        return res.status(429).json({ message: "Trop de requêtes IA. Réessayez dans 1 minute." });
-      }
-
-      const validatedData = aiMealRequestSchema.parse(req.body);
+      console.log("Début de la transcription audio");
       
-      // Create meal with AI
-      const aiMealData = await aiService.createMealFromDescription(
-        validatedData.description, 
-        userId
-      );
-
-      // Create the meal in database
-      const mealData = {
-        name: aiMealData.name,
-        listId: validatedData.listId,
-        calories: aiMealData.estimatedCalories,
-        protein: aiMealData.estimatedProtein,
-        fat: aiMealData.estimatedFat,
-        carbs: aiMealData.estimatedCarbs,
-        ingredients: aiMealData.ingredients,
-        completed: false,
-      };
-
-      const meal = await storage.createMeal(mealData);
-
-      res.json({ meal, aiGenerated: true });
-    } catch (error) {
-      console.error("AI meal creation error:", error);
-      res.status(500).json({ message: "Erreur lors de la création du repas avec l'IA" });
+      if (!req.file) {
+        console.log("Aucun fichier audio fourni");
+        return res.status(400).json({ success: false, error: 'Aucun fichier audio fourni' });
+      }
+      
+      console.log(`Fichier reçu: ${req.file.originalname}, taille: ${req.file.size} bytes, type: ${req.file.mimetype}`);
+      
+      // Créer un fichier temporaire pour stocker les données du buffer
+      tempFilePath = path.join(os.tmpdir(), `audio-${Date.now()}.${req.file.originalname.split('.').pop()}`);
+      console.log(`Écriture du fichier temporaire: ${tempFilePath}`);
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      console.log("Fichier temporaire créé avec succès");
+      
+      // Transcrire l'audio
+      console.log("Appel de l'API OpenAI pour la transcription...");
+      const transcription = await aiVoiceService.transcribeAudio(tempFilePath);
+      console.log("Transcription terminée avec succès");
+      
+      // Répondre avec la transcription
+      res.json({ success: true, transcription });
+    } catch (error: any) {
+      console.error('Erreur détaillée de transcription:', error);
+      if (error.stack) {
+        console.error('Stack trace:', error.stack);
+      }
+      res.status(500).json({ success: false, error: error.message });
+    } finally {
+      // Supprimer le fichier temporaire si créé
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        console.log(`Suppression du fichier temporaire: ${tempFilePath}`);
+        fs.unlinkSync(tempFilePath);
+        console.log("Fichier temporaire supprimé");
+      }
     }
   });
 
-  app.post("/api/ai/meal-suggestions", requireAuth, async (req: AuthRequest, res: Response) => {
+  // Route pour le traitement audio vers repas
+  app.post("/api/audio-to-meal", requireAuth, upload.single('audio'), async (req: AuthRequest, res: Response) => {
+    // Vérifier si un fichier a été envoyé
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Aucun fichier audio fourni' });
+    }
+    
+    // Obtenir l'extension du fichier
+    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase() || 'wav';
+    
+    // Créer un chemin temporaire pour le fichier audio
+    const tempFilePath = path.join(os.tmpdir(), `audio-${Date.now()}.${fileExtension}`);
+    
+    // Écrire le fichier dans le répertoire temporaire
+    fs.writeFileSync(tempFilePath, req.file.buffer);
+    console.log(`Fichier audio temporaire créé: ${tempFilePath}`);
+    
+    try {
+      // Traiter l'audio et générer un repas directement avec le fichier original
+      // OpenAI accepte les formats WAV, pas besoin de conversion
+      const result = await aiVoiceService.audioToMeal(tempFilePath, req.userId || 1, parseInt(req.body.listId || '1'));
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Erreur lors du traitement audio-to-meal:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      return res.status(500).json({ success: false, error: `Échec de la transcription audio: ${errorMessage}` });
+    } finally {
+      // Nettoyer le fichier temporaire
+      try {
+        //fs.unlinkSync(tempFilePath);
+        //console.log(`Fichier temporaire supprimé: ${tempFilePath}`);
+      } catch (cleanupError) {
+        console.error('Erreur lors du nettoyage du fichier temporaire:', cleanupError);
+      }
+    }
+  });
+
+  // Route pour le traitement audio vers aliment (version non protégée pour les tests)
+  app.post("/api/test/audio-to-fooditem", upload.single('audio'), async (req: Request, res: Response) => {
+    // Vérifier si un fichier a été envoyé
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Aucun fichier audio fourni' });
+    }
+    
+    // Obtenir l'extension du fichier
+    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase() || 'wav';
+    
+    // Créer un chemin temporaire pour le fichier audio
+    const tempFilePath = path.join(os.tmpdir(), `audio-food-test-${Date.now()}.${fileExtension}`);
+    
+    try {
+      // Écrire le fichier dans le répertoire temporaire
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      console.log(`[TEST] Fichier audio temporaire créé: ${tempFilePath}`);
+      
+      // Traiter l'audio pour ajouter un aliment
+      const result = await aiVoiceService.audioToFood(tempFilePath);
+      
+      // Retourner le résultat
+      res.json(result);
+    } catch (error) {
+      console.error('[TEST] Erreur lors du traitement audio-to-food:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      res.status(500).json({ 
+        success: false, 
+        error: `Échec du traitement audio: ${errorMessage}` 
+      });
+    } finally {
+      // Nettoyer le fichier temporaire
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+          console.log(`[TEST] Fichier temporaire supprimé: ${tempFilePath}`);
+        }
+      } catch (cleanupError) {
+        console.error('[TEST] Erreur lors du nettoyage du fichier temporaire:', cleanupError);
+      }
+    }
+  });
+
+  // Route pour le traitement audio vers aliment
+  app.post("/api/audio-to-fooditem", requireAuth, upload.single('audio'), async (req: AuthRequest, res: Response) => {
+    // Vérifier si un fichier a été envoyé
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Aucun fichier audio fourni' });
+    }
+    
+    // Obtenir l'extension du fichier
+    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase() || 'wav';
+    
+    // Créer un chemin temporaire pour le fichier audio
+    const tempFilePath = path.join(os.tmpdir(), `audio-food-${Date.now()}.${fileExtension}`);
+    
+    try {
+      // Écrire le fichier dans le répertoire temporaire
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      console.log(`Fichier audio temporaire créé: ${tempFilePath}`);
+      
+      // Traiter l'audio pour ajouter un aliment
+      const result = await aiVoiceService.audioToFood(tempFilePath); //##ATTENTION
+      
+      // Retourner le résultat
+      res.json(result);
+    } catch (error) {
+      console.error('Erreur lors du traitement audio-to-food:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      res.status(500).json({ 
+        success: false, 
+        error: `Échec du traitement audio: ${errorMessage}` 
+      });
+    } finally {
+      // Nettoyer le fichier temporaire
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      } catch (cleanupError) {
+        console.error('Erreur lors du nettoyage du fichier temporaire:', cleanupError);
+      }
+    }
+  });
+
+  // Routes pour la gestion du poids
+  app.post('/api/weight', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.userId;
       if (!userId) {
         return res.status(401).json({ message: "Token invalide" });
       }
-
-      // Rate limiting for AI requests
-      if (!checkAiRateLimit(userId, 15, 60000)) {
-        return res.status(429).json({ message: "Trop de requêtes IA. Réessayez dans 1 minute." });
-      }
-
-      const { preferences } = req.body;
-      if (!preferences || typeof preferences !== 'string') {
-        return res.status(400).json({ message: "Préférences requises" });
-      }
-
-      const suggestions = await aiService.generateMealSuggestions(preferences, userId);
-      res.json({ suggestions });
+      
+      // Valider les données avec le schéma (sans conversion de date)
+      const validatedData = weightEntrySchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      // Convertir la date en objet Date si elle est fournie sous forme de chaîne
+      const entryToSave = {
+        ...validatedData,
+        date: validatedData.date ? new Date(validatedData.date) : new Date()
+      };
+      
+      const entry = await storage.addWeightEntry(entryToSave);
+      res.status(201).json(entry);
     } catch (error) {
-      console.error("AI suggestions error:", error);
-      res.status(500).json({ message: "Erreur lors de la génération de suggestions" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.errors 
+        });
+      }
+      console.error('Error adding weight entry:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  app.get('/api/weight/history', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+      
+      const history = await storage.getWeightHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching weight history:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  app.get('/api/weight/current', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+      
+      const currentWeight = await storage.getCurrentWeight(userId);
+      
+      if (!currentWeight) {
+        return res.status(404).json({ error: 'Aucune donnée de poids trouvée' });
+      }
+      
+      res.json(currentWeight);
+    } catch (error) {
+      console.error('Error fetching current weight:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  app.put('/api/weight/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+      
+      const entryId = parseInt(req.params.id);
+      
+      if (isNaN(entryId)) {
+        return res.status(400).json({ error: 'ID invalide' });
+      }
+      
+      const data = weightEntrySchema.partial().parse(req.body);
+      
+      // Vérifier que l'entrée appartient bien à l'utilisateur
+      const existingEntry = await storage.getCurrentWeight(userId);
+      if (!existingEntry || existingEntry.id !== entryId) {
+        return res.status(404).json({ error: 'Entrée non trouvée' });
+      }
+      
+      const updatedEntry = await storage.updateWeightEntry(entryId, data);
+      if (!updatedEntry) {
+        return res.status(404).json({ error: 'Entrée non trouvée' });
+      }
+      
+      res.json(updatedEntry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Données invalides', details: error.errors });
+      }
+      console.error('Error updating weight entry:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  app.delete('/api/weight/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+      
+      const entryId = parseInt(req.params.id);
+      
+      if (isNaN(entryId)) {
+        return res.status(400).json({ error: 'ID invalide' });
+      }
+      
+      // Vérifier que l'entrée appartient bien à l'utilisateur
+      const existingEntry = await storage.getCurrentWeight(userId);
+      if (!existingEntry || existingEntry.id !== entryId) {
+        return res.status(404).json({ error: 'Entrée non trouvée' });
+      }
+      
+      const success = await storage.deleteWeightEntry(entryId);
+      if (!success) {
+        return res.status(404).json({ error: 'Entrée non trouvée' });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting weight entry:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
     }
   });
 

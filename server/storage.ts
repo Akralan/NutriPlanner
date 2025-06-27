@@ -5,6 +5,7 @@ import {
   listItems, 
   meals,
   nutritionLogs,
+  weightEntries,
   type User,
   type InsertUser,
   type UpdateProfile,
@@ -17,11 +18,14 @@ import {
   type Meal,
   type InsertMeal,
   type NutritionLog,
-  type InsertNutritionLog
+  type InsertNutritionLog,
+  type WeightEntry,
+  type InsertWeightEntry
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, inArray, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -40,6 +44,7 @@ export interface IStorage {
   // Food Items
   getFoodItems(): Promise<FoodItem[]>;
   getFoodItem(id: number): Promise<FoodItem | undefined>;
+  getFoodItemsByIds(ids: number[]): Promise<FoodItem[]>;
   createFoodItem(item: InsertFoodItem): Promise<FoodItem>;
   
   // List Items
@@ -50,14 +55,22 @@ export interface IStorage {
   // Meals
   createMeal(meal: InsertMeal): Promise<Meal>;
   getMeals(listId: number): Promise<Meal[]>;
-  updateMeal(id: number, updates: Partial<Meal>): Promise<Meal | undefined>;
+  updateMeal(id: number, updates: any): Promise<Meal | undefined>;
   deleteMeal(id: number): Promise<boolean>;
   addIngredientToMeal(mealId: number, ingredient: { foodItemId: number; quantity: number; unit: string }): Promise<Meal | undefined>;
+  duplicateMeal(id: number): Promise<Meal | undefined>;
   
   // Nutrition Logs
   createNutritionLog(log: InsertNutritionLog): Promise<NutritionLog>;
   getNutritionLogs(userId: number, days?: number): Promise<NutritionLog[]>;
   updateTodayNutritionLog(userId: number, updates: Partial<NutritionLog>): Promise<NutritionLog>;
+  
+  // Weight Tracking
+  addWeightEntry(entry: InsertWeightEntry): Promise<WeightEntry>;
+  getWeightHistory(userId: number): Promise<WeightEntry[]>;
+  getCurrentWeight(userId: number): Promise<WeightEntry | undefined>;
+  updateWeightEntry(id: number, updates: Partial<WeightEntry>): Promise<WeightEntry | undefined>;
+  deleteWeightEntry(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -75,7 +88,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    console.log(`Recherche de l'utilisateur avec l'email: ${email}`);
+    
+    // Récupérer tous les utilisateurs pour le débogage
+    const allUsers = await db.select().from(users);
+    console.log(`Nombre total d'utilisateurs dans la base de données: ${allUsers.length}`);
+    console.log(`Liste des emails dans la base de données:`, allUsers.map(u => u.email));
+    
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    if (user) {
+      console.log(`Utilisateur trouvé: ${user.id} (${user.email})`);
+    } else {
+      console.log(`Aucun utilisateur trouvé avec l'email: ${email}`);
+    }
+    
     return user;
   }
 
@@ -97,11 +124,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.getUserByEmail(email);
-    if (!user) return null;
+    console.log(`Tentative de connexion pour l'email: ${email}`);
     
-    const isValid = await bcrypt.compare(password, user.password);
-    return isValid ? user : null;
+    const user = await this.getUserByEmail(email);
+    if (!user) {
+      console.log(`Aucun utilisateur trouvé avec l'email: ${email}`);
+      return null;
+    }
+    
+    console.log(`Utilisateur trouvé avec l'ID: ${user.id}`);
+    console.log(`Comparaison du mot de passe fourni avec le hash stocké`);
+    
+    try {
+      const isValid = await bcrypt.compare(password, user.password);
+      console.log(`Résultat de la comparaison: ${isValid ? 'Valide' : 'Invalide'}`);
+      return isValid ? user : null;
+    } catch (error) {
+      console.error(`Erreur lors de la comparaison du mot de passe:`, error);
+      return null;
+    }
   }
 
   // Initialize food items in database using CSV data
@@ -135,6 +176,7 @@ export class DatabaseStorage implements IStorage {
       const carbs = parseFloat(columns[5]) || 0;
       const fat = parseFloat(columns[6]) || 0;
       const calories = parseFloat(columns[7]) || 0;
+      const averageWeight = parseFloat(columns[8]) || 0; 
       const season = this.normalizeSeasonName(columns[9]);
       
       foodItemsToInsert.push({
@@ -146,7 +188,8 @@ export class DatabaseStorage implements IStorage {
           calories,
           protein,
           carbs,
-          fat
+          fat,
+          averageWeight 
         }
       });
     }
@@ -252,6 +295,18 @@ export class DatabaseStorage implements IStorage {
     const [item] = await db.select().from(foodItems).where(eq(foodItems.id, id));
     return item;
   }
+  
+  async getFoodItemsByIds(ids: number[]): Promise<FoodItem[]> {
+    if (ids.length === 0) return [];
+    
+    return await db
+      .select()
+      .from(foodItems)
+      .where(
+        // Utiliser la clause "in" pour récupérer tous les aliments dont l'ID est dans la liste
+        inArray(foodItems.id, ids)
+      );
+  }
 
   async createFoodItem(itemData: InsertFoodItem): Promise<FoodItem> {
     const [item] = await db
@@ -310,24 +365,97 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateMeal(id: number, updates: any): Promise<Meal | undefined> {
-    // Convert ISO string to Date object if completedAt is provided
-    if (updates.completedAt && typeof updates.completedAt === 'string') {
-      updates.completedAt = new Date(updates.completedAt);
+    // Filtrer les champs valides pour éviter les erreurs SQL
+    const validFields = ['name', 'calories', 'protein', 'fat', 'carbs', 'completed', 'completedAt', 'ingredients'];
+    
+    // Créer un nouvel objet avec uniquement les champs valides
+    const filteredUpdates: any = {};
+    for (const field of validFields) {
+      if (updates[field] !== undefined) {
+        filteredUpdates[field] = updates[field];
+      }
     }
+    
+    // Gestion spéciale pour completedAt
+    if (updates.completed !== undefined) {
+      if (updates.completed === true && !updates.completedAt) {
+        // Si le repas est marqué comme complété et qu'aucune date n'est fournie, utiliser la date actuelle
+        filteredUpdates.completedAt = new Date();
+      } else if (updates.completed === false) {
+        // Si le repas est marqué comme non complété, effacer la date de complétion
+        filteredUpdates.completedAt = null;
+      }
+    }
+    
+    // Si completedAt est une chaîne, la convertir en Date
+    if (filteredUpdates.completedAt && typeof filteredUpdates.completedAt === 'string') {
+      filteredUpdates.completedAt = new Date(filteredUpdates.completedAt);
+    }
+    
+    console.log("Filtered updates:", filteredUpdates);
     
     const [meal] = await db
       .update(meals)
-      .set(updates)
+      .set(filteredUpdates)
       .where(eq(meals.id, id))
       .returning();
     return meal;
   }
 
   async deleteMeal(id: number): Promise<boolean> {
-    const result = await db
-      .delete(meals)
-      .where(eq(meals.id, id));
-    return (result.rowCount || 0) > 0;
+    try {
+      // Récupérer le repas pour connaître sa liste associée avant de le supprimer
+      const [meal] = await db
+        .select()
+        .from(meals)
+        .where(eq(meals.id, id));
+      
+      if (!meal) {
+        return false;
+      }
+      
+      const listId = meal.listId;
+      
+      // Supprimer le repas
+      const result = await db
+        .delete(meals)
+        .where(eq(meals.id, id));
+      
+      if ((result.rowCount || 0) > 0) {
+        try {
+          // Mettre à jour le compteur de repas dans la liste
+          console.log(`[deleteMeal] Updating meal count for list ${listId}`);
+          
+          // Compter les repas restants dans la liste
+          const mealsList = await db
+            .select()
+            .from(meals)
+            .where(eq(meals.listId, listId));
+          
+          const mealCount = mealsList.length;
+          console.log(`[deleteMeal] Counted ${mealCount} meals for list ${listId}`);
+          
+          // Mettre à jour le compteur dans la liste
+          const [updatedList] = await db
+            .update(groceryLists)
+            .set({ mealCount })
+            .where(eq(groceryLists.id, listId))
+            .returning();
+          
+          console.log(`[deleteMeal] Updated list ${listId} with meal count ${updatedList.mealCount}`);
+        } catch (updateError) {
+          // Ne pas faire échouer la suppression si la mise à jour du compteur échoue
+          console.error("[deleteMeal] Error updating meal count:", updateError);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("[deleteMeal] Error deleting meal:", error);
+      return false;
+    }
   }
 
   async addIngredientToMeal(mealId: number, ingredient: { foodItemId: number; quantity: number; unit: string }): Promise<Meal | undefined> {
@@ -339,6 +467,8 @@ export class DatabaseStorage implements IStorage {
       // Get food item for nutrition calculations
       const [foodItem] = await db.select().from(foodItems).where(eq(foodItems.id, ingredient.foodItemId));
       if (!foodItem) return undefined;
+
+      console.log(`[addIngredientToMeal] Adding ${ingredient.quantity} ${ingredient.unit} of ${foodItem.name} (ID: ${foodItem.id})`);
 
       // Update ingredients array
       const currentIngredients = meal.ingredients as any[] || [];
@@ -352,13 +482,32 @@ export class DatabaseStorage implements IStorage {
 
       // Calculate new nutrition totals
       const nutrition = foodItem.nutrition as any;
-      const multiplier = ingredient.unit === "kg" ? ingredient.quantity : ingredient.quantity / 1000;
+      console.log(`[addIngredientToMeal] Food item nutrition:`, JSON.stringify(nutrition));
+      
+      // Calcul du multiplicateur en fonction de l'unité
+      let multiplier;
+      if (ingredient.unit === "kg") {
+        multiplier = ingredient.quantity;
+        console.log(`[addIngredientToMeal] Unit is kg, multiplier = ${multiplier}`);
+      } else if (ingredient.unit === "pieces") {
+        // Récupérer le poids moyen de l'aliment et calculer le multiplicateur
+        const averageWeight = nutrition.averageWeight || 0; // en grammes
+        multiplier = (ingredient.quantity * averageWeight) / 1000; // convertir en kg
+        console.log(`[addIngredientToMeal] Unit is pieces, averageWeight = ${averageWeight}g, multiplier = ${multiplier}`);
+      } else {
+        // Par défaut, on considère que c'est en grammes
+        multiplier = ingredient.quantity / 1000;
+        console.log(`[addIngredientToMeal] Unit is grams, multiplier = ${multiplier}`);
+      }
       
       const additionalCalories = Math.round((nutrition.calories || 0) * multiplier);
       const additionalProtein = Math.round((nutrition.protein || 0) * multiplier);
       const additionalFat = Math.round((nutrition.fat || 0) * multiplier);
       const additionalCarbs = Math.round((nutrition.carbs || 0) * multiplier);
 
+      console.log(`[addIngredientToMeal] Additional macros: calories=${additionalCalories}, protein=${additionalProtein}, fat=${additionalFat}, carbs=${additionalCarbs}`);
+      console.log(`[addIngredientToMeal] Current meal macros: calories=${meal.calories}, protein=${meal.protein}, fat=${meal.fat}, carbs=${meal.carbs}`);
+      
       // Update meal with new totals and ingredients
       const [updatedMeal] = await db
         .update(meals)
@@ -379,13 +528,84 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async duplicateMeal(id: number): Promise<Meal | undefined> {
+    try {
+      console.log(`[duplicateMeal] Starting duplication of meal ${id}`);
+      
+      // Récupérer le repas à dupliquer
+      const [originalMeal] = await db
+        .select()
+        .from(meals)
+        .where(eq(meals.id, id));
+      
+      if (!originalMeal) {
+        console.log(`[duplicateMeal] Meal ${id} not found`);
+        return undefined;
+      }
+      
+      console.log(`[duplicateMeal] Found original meal: ${originalMeal.name}`);
+      
+      // Créer une copie du repas
+      const [duplicatedMeal] = await db
+        .insert(meals)
+        .values({
+          listId: originalMeal.listId,
+          name: originalMeal.name,
+          calories: originalMeal.calories,
+          protein: originalMeal.protein,
+          fat: originalMeal.fat,
+          carbs: originalMeal.carbs,
+          completed: false, // Le repas dupliqué n'est pas complété
+          completedAt: null, // Pas de date de complétion
+          ingredients: originalMeal.ingredients,
+          createdAt: new Date()
+        })
+        .returning();
+      
+      console.log(`[duplicateMeal] Created duplicated meal: ${duplicatedMeal.id}`);
+      
+      try {
+        // Mettre à jour le compteur de repas dans la liste
+        const listId = originalMeal.listId;
+        
+        console.log(`[duplicateMeal] Updating meal count for list ${listId}`);
+        
+        // Méthode alternative pour compter les repas
+        const mealsList = await db
+          .select()
+          .from(meals)
+          .where(eq(meals.listId, listId));
+        
+        const mealCount = mealsList.length;
+        console.log(`[duplicateMeal] Counted ${mealCount} meals for list ${listId}`);
+        
+        // Mettre à jour le compteur dans la liste
+        const [updatedList] = await db
+          .update(groceryLists)
+          .set({ mealCount })
+          .where(eq(groceryLists.id, listId))
+          .returning();
+        
+        console.log(`[duplicateMeal] Updated list ${listId} with meal count ${updatedList.mealCount}`);
+      } catch (updateError) {
+        // Ne pas faire échouer la duplication si la mise à jour du compteur échoue
+        console.error("[duplicateMeal] Error updating meal count:", updateError);
+      }
+      
+      return duplicatedMeal;
+    } catch (error) {
+      console.error("[duplicateMeal] Error duplicating meal:", error);
+      return undefined;
+    }
+  }
+
   // Nutrition Logs
-  async createNutritionLog(logData: InsertNutritionLog): Promise<NutritionLog> {
-    const [log] = await db
+  async createNutritionLog(log: InsertNutritionLog): Promise<NutritionLog> {
+    const [newLog] = await db
       .insert(nutritionLogs)
-      .values(logData)
+      .values(log)
       .returning();
-    return log;
+    return newLog;
   }
 
   async getNutritionLogs(userId: number, days: number = 30): Promise<NutritionLog[]> {
@@ -477,50 +697,50 @@ export class DatabaseStorage implements IStorage {
       return newLog;
     }
   }
+
+  // Weight Entries
+  async addWeightEntry(entry: InsertWeightEntry): Promise<WeightEntry> {
+    const [newEntry] = await db.insert(weightEntries).values(entry).returning();
+    return newEntry;
+  }
+
+  async getWeightHistory(userId: number): Promise<WeightEntry[]> {
+    return db
+      .select()
+      .from(weightEntries)
+      .where(eq(weightEntries.userId, userId))
+      .orderBy(desc(weightEntries.date));
+  }
+
+  async getCurrentWeight(userId: number): Promise<WeightEntry | undefined> {
+    const [entry] = await db
+      .select()
+      .from(weightEntries)
+      .where(eq(weightEntries.userId, userId))
+      .orderBy(desc(weightEntries.date))
+      .limit(1);
+    return entry;
+  }
+
+  async updateWeightEntry(id: number, updates: Partial<WeightEntry>): Promise<WeightEntry | undefined> {
+    const [updated] = await db
+      .update(weightEntries)
+      .set(updates)
+      .where(eq(weightEntries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWeightEntry(id: number): Promise<boolean> {
+    const [deleted] = await db
+      .delete(weightEntries)
+      .where(eq(weightEntries.id, id))
+      .returning({ id: weightEntries.id });
+    return !!deleted;
+  }
 }
 
 export const storage = new DatabaseStorage();
 
-// Initialize food items and sample nutrition data on startup
+// Initialize food items on startup
 storage.initializeFoodItems().catch(console.error);
-
-// Create sample nutrition logs for testing
-async function createSampleNutritionLogs() {
-  try {
-    // Check if we already have nutrition logs
-    const existingLogs = await storage.getNutritionLogs(2, 7); // User ID 2
-    if (existingLogs.length > 0) return;
-
-    // Create sample data for the last 7 days
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-
-      const targetCalories = 2200;
-      const consumed = 1800 + Math.random() * 600; // Random between 1800-2400
-      const protein = 80 + Math.random() * 40; // Random between 80-120g
-      const fat = 60 + Math.random() * 30; // Random between 60-90g
-      const carbs = 200 + Math.random() * 100; // Random between 200-300g
-      const meals = Math.floor(2 + Math.random() * 3); // 2-4 meals
-
-      await storage.createNutritionLog({
-        userId: 2,
-        date,
-        totalCalories: Math.round(consumed),
-        totalProtein: Math.round(protein),
-        totalFat: Math.round(fat),
-        totalCarbs: Math.round(carbs),
-        targetCalories,
-        mealsCompleted: meals,
-      });
-    }
-    console.log("Sample nutrition logs created");
-  } catch (error) {
-    console.error("Error creating sample nutrition logs:", error);
-  }
-}
-
-// Initialize sample data with a delay to ensure user exists
-setTimeout(createSampleNutritionLogs, 2000);

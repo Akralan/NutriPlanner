@@ -78,10 +78,21 @@ export const nutritionLogs = pgTable("nutrition_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const weightEntries = pgTable("weight_entries", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  weight: real("weight").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   groceryLists: many(groceryLists),
   nutritionLogs: many(nutritionLogs),
+  weightEntries: many(weightEntries),
 }));
 
 export const groceryListsRelations = relations(groceryLists, ({ one, many }) => ({
@@ -117,6 +128,24 @@ export const nutritionLogsRelations = relations(nutritionLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const weightEntriesRelations = relations(weightEntries, ({ one }) => ({
+  user: one(users, {
+    fields: [weightEntries.userId],
+    references: [users.id],
+  }),
+}));
+
+export type WeightEntry = typeof weightEntries.$inferSelect;
+export type InsertWeightEntry = typeof weightEntries.$inferInsert;
+
+export const weightEntrySchema = createInsertSchema(weightEntries).omit({
+  id: true,
+  createdAt: true
+}).extend({
+  weight: z.number().positive("Le poids doit être un nombre positif"),
+  date: z.string().optional()
+});
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({

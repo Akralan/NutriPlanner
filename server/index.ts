@@ -1,6 +1,10 @@
+// Charger les variables d'environnement depuis le fichier .env
+import 'dotenv/config';
+
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -8,6 +12,8 @@ const app = express();
 
 // Trust proxy for rate limiting in cloud environments
 app.set('trust proxy', 1);
+
+console.log("\x1b[1;36m*** LE BACKEND EST TOUJOURS EN COURS D'EXÉCUTION ***\x1b[0m");
 
 // Enhanced security middleware
 app.use(helmet({
@@ -127,24 +133,55 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+  // Ajouter CORS pour permettre au frontend d'accéder à l'API
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5000');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Configuration du serveur API (backend)
+  const apiPort = 5001;
   server.listen({
-    port,
+    port: apiPort,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`API backend serving on port ${apiPort}`);
   });
+  
+  // Configuration du serveur frontend
+  if (app.get("env") === "development") {
+    const clientApp = express();
+    const clientServer = createServer(clientApp);
+    
+    // Démarrer le serveur frontend
+    setupVite(clientApp, clientServer).then(() => {
+      clientApp.listen({
+        port: 5000,
+        host: "0.0.0.0",
+        reusePort: true,
+      }, () => {
+        log(`Frontend client serving on port 5000`);
+      });
+    });
+  } else {
+    // En production, servir les fichiers statiques sur un autre port
+    const clientApp = express();
+    serveStatic(clientApp);
+    
+    clientApp.listen({
+      port: 5000,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`Production frontend serving on port 5000`);
+    });
+  }
 })();

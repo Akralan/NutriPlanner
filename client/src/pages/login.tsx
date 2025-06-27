@@ -1,19 +1,21 @@
 import { useState } from "react";
-import { useLogin, useRegister } from "@/hooks/useAuth";
+import { useLogin, useRegister } from "../hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { loginSchema, insertUserSchema } from "@shared/schema";
-import type { LoginData, InsertUser } from "@shared/schema";
+import { loginSchema, insertUserSchema } from "@/../../shared/schema";
+import type { LoginData, InsertUser } from "@/../../shared/schema";
+import { useLocation } from "wouter";
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const { toast } = useToast();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+  const [, setLocation] = useLocation();
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -41,6 +43,8 @@ export default function Login() {
         title: "Connexion réussie",
         description: "Bienvenue dans NutriListes !",
       });
+      // Redirection avec Wouter après connexion réussie
+      setLocation("/");
     } catch (error: any) {
       toast({
         title: "Erreur de connexion",
@@ -58,6 +62,8 @@ export default function Login() {
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès !",
       });
+      // Redirection avec Wouter après inscription réussie
+      setLocation("/");
     } catch (error: any) {
       console.error("Register error:", error);
       toast({

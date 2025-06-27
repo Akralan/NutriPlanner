@@ -1,14 +1,115 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import BottomNavigation from "@/components/bottom-navigation";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { Plus, Copy as CopyIcon } from "lucide-react";
+import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "../lib/queryClient";
+import BottomNavigation from "../components/bottom-navigation";
 import type { GroceryList } from "@shared/schema";
+
+function DuplicateListButton({ list }: { list: GroceryList }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(`${list.name} (copie)`);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createListMutation = useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const response = await apiRequest("POST", "/api/grocery-lists", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Liste dupliquée",
+        description: "Votre liste a été dupliquée avec succès",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/grocery-lists"] });
+      setName("");
+      setOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de dupliquer la liste",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast({
+        title: "Nom requis",
+        description: "Veuillez entrer un nom pour votre liste",
+        variant: "destructive",
+      });
+      return;
+    }
+    createListMutation.mutate({ name: name.trim() });
+  };
+
+  // Empêcher la propagation du clic pour éviter la navigation
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(true);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button 
+          onClick={handleButtonClick} 
+          variant="ghost" 
+          size="icon" 
+          className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
+        >
+          <CopyIcon className="h-3 w-3 text-gray-500 hover:text-gray-800" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="glassmorphism border-2 border-white/30">
+        <DialogHeader>
+          <DialogTitle className="text-gray-800">Dupliquer la liste</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nom de la nouvelle liste
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Courses de la semaine (copie)"
+              className="glassmorphism border-2 border-white/30 rounded-xl"
+              maxLength={100}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex-1 glassmorphism border-2 border-white/30 rounded-xl text-gray-700 hover:bg-white/40"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              disabled={createListMutation.isPending}
+              className="flex-1 glassmorphism bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-medium rounded-xl"
+            >
+              {createListMutation.isPending ? "Duplication..." : "Dupliquer"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function CreateListButton() {
   const [open, setOpen] = useState(false);
@@ -154,9 +255,9 @@ export default function Lists() {
             <CreateListButton />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {groceryLists.map((list) => (
-              <Link key={list.id} href={isMealsMode ? `/meals/${list.id}` : `/food-selection/${list.id}`}>
+              <Link key={list.id} href={isMealsMode ? `/meals/${list.id}` : `/food-selection/${list.id}`} className="block mb-6">
                 <div className="glassmorphism rounded-2xl p-4 shadow-lg cursor-pointer hover:scale-105 transition-transform">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
@@ -176,13 +277,16 @@ export default function Lists() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2 mt-3">
+                  <div className="flex items-center justify-between mt-3">
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       list.status === "active" 
                         ? "bg-blue-100 text-blue-700" 
                         : "bg-green-100 text-green-700"
                     }`}>
                       {list.status === "active" ? "En cours" : "Terminée"}
+                    </span>
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <DuplicateListButton list={list} />
                     </span>
                   </div>
                 </div>
